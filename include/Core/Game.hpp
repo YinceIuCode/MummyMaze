@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <Core/Maze.hpp>
 #include <Entities/Player.hpp>
+#include <Core/MazeGenerator.hpp>
 
 class Game {
 private:
@@ -14,9 +15,9 @@ private:
 	Map m_map;
 	Player m_player;
 
+	void generateNewMaze(int mapsize);
 	void initVariables();
 	void initWindow();
-
 	void updateDt();
 
 public:

@@ -11,6 +11,7 @@ private:
 	sf::Vector2f m_targetPos;
 	bool m_isMoving;
 	float m_movementSpeed;
+	float m_tilePerSecond;
 public:
 	Player();
 	virtual ~Player();
@@ -22,5 +23,5 @@ public:
 	void processInput(const Map& map);
 
 	void update(float dt);
-	void render(sf::RenderWindow& window);
+	void render(sf::RenderWindow& window, float scaleRatio);
 };

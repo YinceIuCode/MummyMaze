@@ -56,6 +56,14 @@ Map::~Map() {
 
 }
 
+void Map::setPosition(float x, float y) {
+    posmap = { x, y };
+}
+
+sf::Vector2f Map::getPosition() const {
+    return posmap;
+}
+
 float Map::getTileSize() const {
     return m_tileSize;
 }
@@ -78,7 +86,7 @@ int Map::getHeight() const {
     return m_height;
 }
 
-void Map::loadMap(const std::string& filePath) {
+void Map::loadMap(const std::string& filePath, Player& player) {
     std::ifstream file(filePath);
     if (!file.is_open()) return;
 
@@ -122,6 +130,13 @@ void Map::loadMap(const std::string& filePath) {
             if (rightChar == '#' && charX + 1 != textW - 1) cell.wallRight = true;
 
             char centerChar = lines[charY][charX];
+            if (centerChar == 'E') {
+                float spawnX = x * m_tileSize + posmap.x - dynamicOffset;
+                float spawnY = y * m_tileSize + posmap.y - dynamicOffset;
+
+                // Set vị trí cho Player ngay lập tức
+                player.setPosition(spawnX, spawnY);
+            }
             
             if (!m_texFloors.empty()) {
                 cell.floorVariant = rand() % m_texFloors.size();
@@ -131,7 +146,7 @@ void Map::loadMap(const std::string& filePath) {
 }
 
 void Map::draw(sf::RenderWindow& window, Player& player) {
-    int playerGridY = static_cast<int>((player.getPosition().y / m_tileSize));
+    int playerGridY = static_cast<int>(((player.getPosition().y - posmap.y + m_tileSize / 2) / m_tileSize));
 
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
@@ -196,7 +211,7 @@ void Map::draw(sf::RenderWindow& window, Player& player) {
         }
 
         if (y == playerGridY) {
-            player.render(window);
+            player.render(window, scaleRatio);
         }
 
         for (int x = 0; x < m_width; ++x) {

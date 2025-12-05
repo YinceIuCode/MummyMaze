@@ -1,10 +1,25 @@
 ﻿#include <Core/Game.hpp>
 #include <Entities/Player.hpp>
 
+void Game::generateNewMaze(int mapsize) {
+	generate_maze maze(mapsize);
+	do {
+		maze.generate();
+	} while (maze.can_solve_the_maze() > 2);
+	maze.print_maze();
+}
+
 void Game::initVariables() {
 	m_window.setFramerateLimit(60); // Giới hạn 60 FPS
 
-	m_map.loadMap("assets/mazes/maze1.txt");
+	this->generateNewMaze(6);
+
+	m_map.loadMap("assets/mazes/maze1.txt", m_player);
+
+	float offsetX = 1290 / 2.f - 300.f;
+	float offsetY = 210.f;
+
+	m_map.setPosition( offsetX, offsetY );
 }
 
 void Game::initWindow() {
@@ -51,10 +66,19 @@ void Game::update() {
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num1)) {
 		// Theme 1: Playmap
+		m_map.loadTheme("Nobi");
+		m_player.loadTheme("Nobi");
+		sf::sleep(sf::milliseconds(200));
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num2)) {
+		// Theme 1: Playmap
 		m_map.loadTheme("Playmap");
 		m_player.loadTheme("Playmap");
 		sf::sleep(sf::milliseconds(200));
 	}
+
+	m_player.processInput(m_map);
 
 	m_player.update(m_dt);
 }

@@ -23,9 +23,9 @@ set(SOURCES
 	src/Core/Game.cpp
     src/Core/Maze.cpp
     src/Entities/Player.cpp
-)
+    src/Core/MazeGenerator.cpp)
 
-add_executable(${PROJECT_NAME} WIN32 ${SOURCES} "src/Entities/Player.cpp")
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES} "src/Entities/Player.cpp" "src/Core/MazeGenerator.cpp")
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

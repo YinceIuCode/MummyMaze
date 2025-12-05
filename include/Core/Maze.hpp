@@ -34,12 +34,13 @@ public:
 	Map();
 	~Map();
 
-	void loadMap(const std::string& filePath);
+	void loadMap(const std::string& filePath, Player& player);
 	void loadTheme(const std::string& themeName);
 	float getTileSize() const;
 	const Cell* getCell(int x, int y) const;
 	int getWidth() const;                   
 	int getHeight() const;
 	void draw(sf::RenderWindow& window, Player& player);
-
+	void setPosition(float x, float y);
+	sf::Vector2f getPosition() const;
 };

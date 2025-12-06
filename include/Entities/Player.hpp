@@ -1,17 +1,32 @@
-#pragma once
+﻿#pragma once
 #include <SFML/Graphics.hpp>
 
 class Map;
 
+enum Dir{ Down = 0, Left = 1, Right = 2, Up = 3};
+
 class Player {
 private:
-	sf::Texture m_texture;
-
 	sf::Vector2f m_position;
 	sf::Vector2f m_targetPos;
 	bool m_isMoving;
 	float m_movementSpeed;
 	float m_tilePerSecond;
+
+	// ANIMATION
+	// mảng 2 chiều [4 hướng][3 frame]
+	std::vector<std::vector<sf::Texture>> m_textures;
+
+	sf::Vector2i m_frameSize;
+	sf::IntRect m_textureRect;
+	int m_animStep;
+
+	int m_currentFrame;
+	int m_currentDir;
+
+	float m_animTimer;
+	float m_animSwitchTime;
+
 public:
 	Player();
 	virtual ~Player();

@@ -1,30 +1,38 @@
 ﻿#pragma once
+
 #include <SFML/Graphics.hpp>
-#include <Core/Maze.hpp>
-#include <Entities/Player.hpp>
-#include <Core/MazeGenerator.hpp>
+#include <stack>
+#include <memory>
+#include "States/State.hpp"
 
 class Game {
 private:
-	sf::RenderWindow m_window;
-	sf::VideoMode m_videoMode;
-	
-	sf::Clock m_dtClock;
-	float m_dt;
+    // --- Quản lý Cửa sổ ---
+    sf::RenderWindow m_window;
+    sf::VideoMode m_videoMode;
 
-	Map m_map;
-	Player m_player;
+    // --- Quản lý Thời gian (Delta Time) ---
+    sf::Clock m_dtClock;
+    float m_dt;
 
-	void generateNewMaze(int mapsize);
-	void initVariables();
-	void initWindow();
-	void updateDt();
+    // --- QUAN TRỌNG: Stack chứa các màn hình (Menu, Game, Pause...) ---
+    // Dùng unique_ptr để tự động quản lý bộ nhớ, không cần delete thủ công
+    std::stack<std::unique_ptr<State>> m_states;
+
+    // --- Hàm khởi tạo nội bộ ---
+    void initWindow();
+    void initStates(); // Hàm này sẽ push màn hình đầu tiên (ví dụ Menu hoặc Game)
 
 public:
-	Game();
-	virtual ~Game();
+    // --- Constructor / Destructor ---
+    Game();
+    virtual ~Game();
 
-	const bool isRunning() const; // Kiểm tra game có chạy không
-	void update();				  // Xử lý logic, event
-	void render();				  // Vẽ mọi thứ ra màn hình
+    // --- Accessors ---
+    const bool isRunning() const; // Kiểm tra xem cửa sổ còn mở không
+
+    // --- Core Functions ---
+    void updateDt(); // Tính toán thời gian trôi qua giữa 2 frame
+    void update();   // Update logic của State hiện tại
+    void render();   // Vẽ State hiện tại
 };

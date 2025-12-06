@@ -13,6 +13,12 @@ Map::Map() {
     this->loadTheme("Playmap");
 }
 
+void Map::setTileSize(float size) {
+    this->m_tileSize = size;
+    this->scaleRatio = size / 120.0f;
+    this->dynamicOffset = 60.f - 360.f / (720.f / this->m_tileSize);
+}
+
 void Map::loadTheme(const std::string& themeName) {
     // 1. Tạo đường dẫn gốc: "assets/textures/Nobita/"
     std::string pathPrefix = "assets/textures/" + themeName + "/";

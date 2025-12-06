@@ -40,6 +40,7 @@ public:
 	const Cell* getCell(int x, int y) const;
 	int getWidth() const;                   
 	int getHeight() const;
+	void setTileSize(float size);
 	void draw(sf::RenderWindow& window, Player& player);
 	void setPosition(float x, float y);
 	sf::Vector2f getPosition() const;

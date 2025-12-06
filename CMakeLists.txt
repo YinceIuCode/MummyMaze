@@ -23,9 +23,11 @@ set(SOURCES
 	src/Core/Game.cpp
     src/Core/Maze.cpp
     src/Entities/Player.cpp
-    src/Core/MazeGenerator.cpp)
+    src/Core/MazeGenerator.cpp 
+    src/States/GameState.cpp
+ "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp")
 
-add_executable(${PROJECT_NAME} WIN32 ${SOURCES} "src/Entities/Player.cpp" "src/Core/MazeGenerator.cpp")
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES} "src/Entities/Player.cpp" "src/Core/MazeGenerator.cpp" "src/States/GameState.cpp" "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp")
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

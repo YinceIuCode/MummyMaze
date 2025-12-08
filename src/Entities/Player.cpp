@@ -60,6 +60,10 @@ sf::Vector2f Player::getPosition() const {
     return m_position;
 }
 
+bool Player::isMoving() const {
+    return m_isMoving;
+}
+
 void Player::processInput(const Map& map) {
     if (m_isMoving) return;
 
@@ -166,4 +170,4 @@ void Player::render(sf::RenderWindow& window, float scaleRatio) {
     sprite.setOrigin({ m_rect.size.x / 2.0f, m_rect.size.y - 10.0f });
     sprite.setScale({ scaleRatio, scaleRatio });    
     window.draw(sprite);
-}
+} 

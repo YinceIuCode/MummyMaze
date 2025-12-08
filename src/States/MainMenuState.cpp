@@ -49,22 +49,21 @@ void MainMenuState::initVariables() {
 void MainMenuState::initGui() {
     float centerX = m_window->getSize().x / 2.f;
     float startY = 300.f; // Vị trí Y bắt đầu
-    float gapY = 100.f;   // Khoảng cách giữa các nút
 
     // Hàm lambda để setup nút cho nhanh (đỡ viết lặp lại)
-    auto setupBtn = [&](std::optional<sf::Sprite>& btn, float yPos) {
+    auto setupBtn = [&](std::optional<sf::Sprite>& btn, float xPos, float yPos) {
         if (btn.has_value()) {
             sf::FloatRect bounds = btn->getLocalBounds();
             btn->setOrigin({ bounds.size.x / 2.f, bounds.size.y / 2.f }); // Tâm ở giữa
-            btn->setPosition({ centerX, yPos });
+            btn->setPosition({ xPos, yPos });
         }
-        };
+    };
 
-    setupBtn(m_btnPlay, startY);
-    setupBtn(m_btnCustomize, startY + gapY);
-    setupBtn(m_btnSettings, startY + gapY * 2);
-    setupBtn(m_btnHowToPlay, startY + gapY * 3);
-    setupBtn(m_btnExit, startY + gapY * 4);
+    setupBtn(m_btnPlay, centerX, m_window->getSize().y / 2 + m_btnPlay->getGlobalBounds().size.y / 2);
+    setupBtn(m_btnCustomize, centerX, m_window->getSize().y / 2 + m_btnPlay->getGlobalBounds().size.y + m_btnCustomize->getGlobalBounds().size.y / 2 + 20);
+    setupBtn(m_btnSettings, m_window->getSize().x - m_btnSettings->getGlobalBounds().size.x / 2 - 5, m_btnSettings->getGlobalBounds().size.y + 10);
+    setupBtn(m_btnHowToPlay, m_window->getSize().x - m_btnHowToPlay->getGlobalBounds().size.x - 15, m_btnHowToPlay->getGlobalBounds().size.y + 10);
+    setupBtn(m_btnExit, m_btnExit->getGlobalBounds().size.x, m_btnExit->getGlobalBounds().size.y + 10);
 }
 
 void MainMenuState::updateButtons() {
@@ -72,20 +71,20 @@ void MainMenuState::updateButtons() {
     static bool isHandled = false; // Chặn click đúp
 
     // --- HOVER EFFECT (Phóng to khi chuột chỉ vào) ---
-    auto hoverEffect = [&](std::optional<sf::Sprite>& btn) {
+    auto hoverEffect = [&](std::optional<sf::Sprite>& btn, float baseScale = 1.0f) {
         if (!btn.has_value()) return;
 
         if (btn->getGlobalBounds().contains(mousePos)) {
-            btn->setScale({ 1.1f, 1.1f }); // Phóng to 10%
+            btn->setScale({ baseScale * 1.1f, baseScale * 1.1f }); // Phóng to 10%
             btn->setColor(sf::Color(255, 255, 255, 255)); // Sáng bình thường
         }
         else {
-            btn->setScale({ 1.0f, 1.0f }); // Kích thước gốc
+            btn->setScale({ baseScale * 1.0f, baseScale * 1.0f }); // Kích thước gốc
             btn->setColor(sf::Color(200, 200, 200, 255)); // Hơi tối đi chút
         }
         };
 
-    hoverEffect(m_btnPlay);
+    hoverEffect(m_btnPlay, 3.0f);
     hoverEffect(m_btnCustomize);
     hoverEffect(m_btnSettings);
     hoverEffect(m_btnHowToPlay);
@@ -133,6 +132,18 @@ void MainMenuState::render(sf::RenderWindow& window) {
 
     // Vẽ các nút (Nhớ dùng dấu * để lấy giá trị từ optional)
     if (m_btnPlay.has_value()) window.draw(*m_btnPlay);
+    if (m_btnPlay.has_value()) {
+        sf::FloatRect bounds = m_btnPlay->getGlobalBounds();
+
+        sf::RectangleShape debugBox;
+        debugBox.setPosition({ bounds.position.x, bounds.position.y });
+        debugBox.setSize({ bounds.size.x, bounds.size.y });
+        debugBox.setFillColor(sf::Color::Transparent); // Không tô màu nền
+        debugBox.setOutlineColor(sf::Color::Red);      // Viền đỏ
+        debugBox.setOutlineThickness(2.0f);
+
+        window.draw(debugBox);
+    }
     if (m_btnCustomize.has_value()) window.draw(*m_btnCustomize);
     if (m_btnSettings.has_value()) window.draw(*m_btnSettings);
     if (m_btnHowToPlay.has_value()) window.draw(*m_btnHowToPlay);

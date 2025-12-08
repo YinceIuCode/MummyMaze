@@ -31,6 +31,7 @@ void GameState::initVariables() {
 
     m_map.loadMap("assets/mazes/maze1.txt", m_player);
 
+
     float offsetX = 1290 / 2.f - 300.f;
     float offsetY = 210.f;
 

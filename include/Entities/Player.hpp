@@ -36,6 +36,7 @@ public:
 	sf::Vector2f getPosition() const;
 
 	void processInput(const Map& map);
+	bool isMoving() const;
 
 	void update(float dt);
 	void render(sf::RenderWindow& window, float scaleRatio);

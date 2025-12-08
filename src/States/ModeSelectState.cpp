@@ -21,19 +21,29 @@ void ModeSelectState::initGui() {
     // Setup cơ bản (bạn có thể căn chỉnh lại tọa độ cho đẹp)
     m_title.setString("SELECT MODE");
     m_title.setCharacterSize(60);
-    m_title.setPosition({ 450.f, 100.f });
+    sf::FloatRect m_rect = m_title.getGlobalBounds();
+    m_title.setOrigin(m_rect.getCenter());
+    m_title.setPosition({ m_window->getSize().x / 2.0f, 100.f});
 
     m_btn6x6.setString("6 x 6");
-    m_btn6x6.setPosition({ 550.f, 300.f });
+    m_rect = m_btn6x6.getGlobalBounds();
+    m_btn6x6.setOrigin(m_rect.getCenter());
+    m_btn6x6.setPosition({ m_window->getSize().x / 2.0f, 300.f });
 
     m_btn8x8.setString("8 x 8");
-    m_btn8x8.setPosition({ 550.f, 400.f });
+    m_rect = m_btn8x8.getGlobalBounds();
+    m_btn8x8.setOrigin(m_rect.getCenter());
+    m_btn8x8.setPosition({ m_window->getSize().x / 2.0f, 400.f });
 
     m_btn10x10.setString("10 x 10");
-    m_btn10x10.setPosition({ 550.f, 500.f });
+    m_rect = m_btn10x10.getGlobalBounds();
+    m_btn10x10.setOrigin(m_rect.getCenter());
+    m_btn10x10.setPosition({ m_window->getSize().x / 2.0f, 500.f });
 
     m_btnBack.setString("BACK");
-    m_btnBack.setPosition({ 50.f, 50.f });
+    m_rect = m_btnBack.getGlobalBounds();
+    m_btnBack.setOrigin(m_rect.getCenter());
+    m_btnBack.setPosition({ 100.f, 50.f });
 }
 
 void ModeSelectState::updateButtons() {

@@ -185,7 +185,7 @@ void Map::draw(sf::RenderWindow& window, Player& player) {
 
             float px = x * m_tileSize + posmap.x - dynamicOffset;
             float py = y * m_tileSize + posmap.y - dynamicOffset;
-            
+
             if (cell.wallTop) {
                 sf::Sprite m_sprite(m_texWallHoriz);
                 sf::FloatRect m_rect = m_sprite.getGlobalBounds();
@@ -204,7 +204,7 @@ void Map::draw(sf::RenderWindow& window, Player& player) {
                 m_sprite.setPosition({ px - m_tileSize / 2, py });
                 window.draw(m_sprite);
             }
-            
+
             // Vẽ tường phải (Right) - Chỉ cần vẽ ở cột cuối cùng
             if (cell.wallRight) {
                 sf::Sprite m_sprite(m_texWallVert);
@@ -237,6 +237,7 @@ void Map::draw(sf::RenderWindow& window, Player& player) {
             }
         }
     }
+
 
     sf::Sprite m_spriter(m_texBorders[1]);
     sf::FloatRect m_rectr = m_spriter.getGlobalBounds();

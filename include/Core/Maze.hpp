@@ -4,6 +4,7 @@
 #include <string>
 
 class Player;
+class Mummy;
 
 struct Cell {
 	bool wallTop = false;
@@ -34,7 +35,7 @@ public:
 	Map();
 	~Map();
 
-	void loadMap(const std::string& filePath, Player& player);
+	void loadMap(const std::string& filePath, Player& player, Mummy& mummy);
 	void loadTheme(const std::string& themeName);
 	float getTileSize() const;
 	const Cell* getCell(int x, int y) const;

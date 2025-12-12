@@ -1,5 +1,6 @@
 ﻿#include <Core/Maze.hpp>
 #include <Entities/Player.hpp>
+#include <Entities/Mummy.hpp>
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
@@ -92,7 +93,7 @@ int Map::getHeight() const {
     return m_height;
 }
 
-void Map::loadMap(const std::string& filePath, Player& player) {
+void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
     std::ifstream file(filePath);
     if (!file.is_open()) return;
 
@@ -143,6 +144,10 @@ void Map::loadMap(const std::string& filePath, Player& player) {
                 // Set vị trí cho Player ngay lập tức
                 player.setPosition(spawnX, spawnY);
             }
+
+            if (centerChar == 'M') {
+                mummy.setSpawn(y, x, *this);
+			}
             
             if (!m_texFloors.empty()) {
                 cell.floorVariant = rand() % m_texFloors.size();

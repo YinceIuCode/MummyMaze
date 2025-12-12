@@ -2,19 +2,29 @@
 #include "States/State.hpp"
 #include "Core/Maze.hpp"
 #include "Entities/Player.hpp"
+#include "Entities/Mummy.hpp"
 #include "Core/MazeGenerator.hpp"
 #include "Core/Maze.hpp"
 #include "Core/GameData.hpp"
 #include "States/State.hpp"
 
+enum class TurnState {
+    PlayerInput,   // Chờ người chơi bấm nút
+    PlayerMoving,  // Người chơi đang trượt tới ô mới
+    MummyThinking, // Tính toán đường đi cho Mummy
+    MummyMoving    // Mummy đang trượt tới ô mới
+};
+
 class GameState : public State {
 private:
     Map m_map;
     Player m_player;
+	Mummy m_mummy;
     int m_currentMapSize;
 
     void initVariables();
     void generateNewMaze(int mapsize); // Hàm copy từ Game qua
+    TurnState m_turn;
 
 public:
     GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, int mapSize);

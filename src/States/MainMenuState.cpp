@@ -14,11 +14,10 @@ MainMenuState::~MainMenuState() {
 
 void MainMenuState::initVariables() {
     // 1. Load Background
-    if (!m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) {
-        std::cerr << "ERROR: Could not load menu_bg.png\n";
+    if (m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) {
+        m_bgTexture.setSmooth(true);
+        m_bgSprite.emplace(m_bgTexture);
     }
-    // Khởi tạo sprite background từ texture
-    m_bgSprite.emplace(m_bgTexture);
 
     // 2. Load Textures cho các nút
     // Bạn nhớ kiểm tra đúng tên file ảnh nhé
@@ -61,7 +60,7 @@ void MainMenuState::initGui() {
 
     setupBtn(m_btnPlay, centerX, m_window->getSize().y / 2 + m_btnPlay->getGlobalBounds().size.y / 2);
     setupBtn(m_btnCustomize, centerX, m_window->getSize().y / 2 + m_btnPlay->getGlobalBounds().size.y + m_btnCustomize->getGlobalBounds().size.y / 2 + 20);
-    setupBtn(m_btnSettings, m_window->getSize().x - m_btnSettings->getGlobalBounds().size.x / 2 - 5, m_btnSettings->getGlobalBounds().size.y + 10);
+    setupBtn(m_btnSettings, m_window->getSize().x - m_btnSettings->getGlobalBounds().size.x, 30);
     setupBtn(m_btnHowToPlay, m_window->getSize().x - m_btnHowToPlay->getGlobalBounds().size.x - 15, m_btnHowToPlay->getGlobalBounds().size.y + 10);
     setupBtn(m_btnExit, m_btnExit->getGlobalBounds().size.x, m_btnExit->getGlobalBounds().size.y + 10);
 }
@@ -80,13 +79,13 @@ void MainMenuState::updateButtons() {
         }
         else {
             btn->setScale({ baseScale * 1.0f, baseScale * 1.0f }); // Kích thước gốc
-            btn->setColor(sf::Color(200, 200, 200, 255)); // Hơi tối đi chút
+            btn->setColor(sf::Color(200, 200, 200, 255));
         }
-        };
+    };
 
-    hoverEffect(m_btnPlay, 3.0f);
+    hoverEffect(m_btnPlay, 2.0f);
     hoverEffect(m_btnCustomize);
-    hoverEffect(m_btnSettings);
+    hoverEffect(m_btnSettings, 2.0f);
     hoverEffect(m_btnHowToPlay);
     hoverEffect(m_btnExit);
 
@@ -96,6 +95,7 @@ void MainMenuState::updateButtons() {
 
             // 1. PLAY -> Vào màn hình chọn chế độ
             if (m_btnPlay->getGlobalBounds().contains(mousePos)) {
+                sf::sleep(sf::milliseconds(500));
                 m_states->push(std::make_unique<ModeSelectState>(m_window, m_states));
             }
 
@@ -132,18 +132,6 @@ void MainMenuState::render(sf::RenderWindow& window) {
 
     // Vẽ các nút (Nhớ dùng dấu * để lấy giá trị từ optional)
     if (m_btnPlay.has_value()) window.draw(*m_btnPlay);
-    if (m_btnPlay.has_value()) {
-        sf::FloatRect bounds = m_btnPlay->getGlobalBounds();
-
-        sf::RectangleShape debugBox;
-        debugBox.setPosition({ bounds.position.x, bounds.position.y });
-        debugBox.setSize({ bounds.size.x, bounds.size.y });
-        debugBox.setFillColor(sf::Color::Transparent); // Không tô màu nền
-        debugBox.setOutlineColor(sf::Color::Red);      // Viền đỏ
-        debugBox.setOutlineThickness(2.0f);
-
-        window.draw(debugBox);
-    }
     if (m_btnCustomize.has_value()) window.draw(*m_btnCustomize);
     if (m_btnSettings.has_value()) window.draw(*m_btnSettings);
     if (m_btnHowToPlay.has_value()) window.draw(*m_btnHowToPlay);

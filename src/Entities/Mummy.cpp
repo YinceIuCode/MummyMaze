@@ -1,14 +1,24 @@
 ﻿#include "Entities/Mummy.hpp"
+
+// --- QUAN TRỌNG: Phải include 2 file này vì header chỉ khai báo trước ---
+#include "Core/Maze.hpp"
+#include "Entities/Player.hpp"
+
 #include <iostream>
 
-// Định nghĩa thứ tự hướng đi khớp với dr/dc bên dưới
-// 0: Left, 1: Right, 2: Up, 3: Down
+// Định nghĩa thứ tự hướng đi: 0: Left, 1: Right, 2: Up, 3: Down
 const int dr[4] = { 0, 0, -1, 1 };
 const int dc[4] = { -1, 1, 0, 0 };
 
+// ==============================
+// 1. CONSTRUCTOR & SETUP
+// ==============================
+
 Mummy::Mummy() : r(0), c(0) {
     m_isMoving = false;
-    m_moveSpeed = 150.0f;
+    m_moveSpeed = 200.0f; // Tốc độ pixel/giây (Tăng lên 200 cho mượt)
+    m_pauseTimer = 0.f;
+    mode = MummyAlgorithm::Greedy; // Mặc định là Greedy
 }
 
 void Mummy::initTexture(const std::string& texturePath) {
@@ -19,46 +29,44 @@ void Mummy::initTexture(const std::string& texturePath) {
 
     // Mặc định cho ẩn đi nếu chưa setSpawn
     m_position = { -1000.f, -1000.f };
-    m_sprite->setPosition(m_position);
+    if (m_sprite.has_value()) {
+        m_sprite->setPosition(m_position);
+    }
 }
 
 void Mummy::loadTheme(const std::string& themeName) {
-    // Tạo đường dẫn tự động: assets/textures/[ThemeName]/Mummy/mummy.png
-    // Bạn nhớ đảm bảo trong thư mục theme có folder "Mummy" và file ảnh nhé
+    // Đảm bảo đường dẫn file ảnh đúng với cấu trúc thư mục của bạn
     std::string path = "assets/textures/" + themeName + "/Mummy/mummy1.1.1.3.png";
-
-    // Gọi lại hàm load ảnh gốc
     this->initTexture(path);
 }
 
-void Mummy::setSpawn(int startR, int startC, const Map& map) {
+// Sửa tham số hàm setSpawn để nhận thêm pixelX, pixelY
+void Mummy::setSpawn(int startR, int startC, float pixelX, float pixelY) {
     r = startR;
     c = startC;
 
-    float tileSize = map.getTileSize();
-    sf::Vector2f mapPos = map.getPosition();
+    // Không cần tính toán lại dựa trên Map nữa, dùng luôn tọa độ Map gửi sang
+    m_position = { pixelX, pixelY };
+    m_targetPos = { pixelX, pixelY };
 
-    // Tính toán vị trí pixel
-    float px = c * tileSize + mapPos.x;
-    float py = r * tileSize + mapPos.y;
-
-    m_position = { px, py };
-    m_targetPos = { px, py };
-
-    // Xóa sạch hàng đợi cũ và reset timer
+    // Reset trạng thái
     while (!m_pathQueue.empty()) m_pathQueue.pop();
     m_pauseTimer = 0.f;
     m_isMoving = false;
 
-    if (m_sprite.has_value()) m_sprite->setPosition(m_position);
+    if (m_sprite.has_value()) {
+        m_sprite->setPosition(m_position);
+    }
 }
 
-// Kiểm tra tường dựa trên Cell của Map
-bool Mummy::hasWall(const Map& map, int currR, int currC, int dirIndex) const {
-    const Cell* cell = map.getCell(currC, currR); // Lưu ý: getCell(x, y) tức là (col, row)
-    if (!cell) return true; // Ngoài map coi như có tường
+// ==============================
+// 2. HELPER FUNCTIONS
+// ==============================
 
-    // 0: Left, 1: Right, 2: Up, 3: Down
+bool Mummy::hasWall(const Map& map, int currR, int currC, int dirIndex) const {
+    const Cell* cell = map.getCell(currC, currR); // Map::getCell nhận (x, y) tức là (col, row)
+    if (!cell) return true;
+
     switch (dirIndex) {
     case 0: return cell->wallLeft;
     case 1: return cell->wallRight;
@@ -72,110 +80,100 @@ int Mummy::manhattan(int rr1, int cc1, int rr2, int cc2) const {
     return std::abs(rr1 - rr2) + std::abs(cc1 - cc2);
 }
 
+// ==============================
+// 3. MOVEMENT ALGORITHMS
+// ==============================
+
 void Mummy::moveOnceRandom(const Map& map) {
-    int rDest[4];
-    int cDest[4];
-    int count = 0;
-    int rMid[4], cMid[4];
+    // Mảng lưu các nước đi khả thi
+    struct Step { int r1, c1, r2, c2; };
+    std::vector<Step> possibleMoves;
 
     for (int k = 0; k < 4; k++) {
         // --- BƯỚC 1 ---
-        // Kiểm tra tường từ ô hiện tại
         if (hasWall(map, r, c, k)) continue;
+        int nr1 = r + dr[k];
+        int nc1 = c + dc[k];
+        if (nr1 < 0 || nr1 >= map.getHeight() || nc1 < 0 || nc1 >= map.getWidth()) continue;
 
-        int nr = r + dr[k];
-        int nc = c + dc[k];
-
-        // Kiểm tra biên map
-        if (nr < 0 || nr >= map.getHeight() || nc < 0 || nc >= map.getWidth()) continue;
-
-        // --- BƯỚC 2 (Mummy đi 2 ô) ---
-        // Kiểm tra tường từ ô trung gian (nr, nc)
-        if (hasWall(map, nr, nc, k)) continue;
-
-        int nr2 = nr + dr[k];
-        int nc2 = nc + dc[k];
-
+        // --- BƯỚC 2 ---
+        if (hasWall(map, nr1, nc1, k)) continue;
+        int nr2 = nr1 + dr[k];
+        int nc2 = nc1 + dc[k];
         if (nr2 < 0 || nr2 >= map.getHeight() || nc2 < 0 || nc2 >= map.getWidth()) continue;
 
-        // Nếu đi được cả 2 bước, lưu lại
-        rDest[count] = nr2;
-        cDest[count] = nc2;
-        rMid[count] = nr;   cMid[count] = nc;
-        count++;
+        // Lưu lại cặp bước đi (Bước 1 & Bước 2)
+        possibleMoves.push_back({ nr1, nc1, nr2, nc2 });
     }
 
-    if (count == 0) return; // Kẹt cứng
+    if (possibleMoves.empty()) return; // Kẹt cứng
 
-    int idx = std::rand() % count;
+    // Chọn ngẫu nhiên
+    int idx = std::rand() % possibleMoves.size();
+    Step move = possibleMoves[idx];
 
-    // --- XỬ LÝ QUEUE ---
+    // --- NẠP VÀO HÀNG ĐỢI ---
     float tileSize = map.getTileSize();
     sf::Vector2f mapPos = map.getPosition();
 
+    // 1. Lấy Dynamic Offset từ Map
+    float offset = map.getDynamicOffset();
+
+    // 2. Trừ offset khi tính tọa độ
     // Push Bước 1
-    float px1 = cMid[idx] * tileSize + mapPos.x;
-    float py1 = rMid[idx] * tileSize + mapPos.y;
-    m_pathQueue.push({ px1, py1 });
+    m_pathQueue.push({
+        move.c1 * tileSize + mapPos.x - offset,  // Trừ offset
+        move.r1 * tileSize + mapPos.y - offset   // Trừ offset
+        });
 
     // Push Bước 2
-    float px2 = cDest[idx] * tileSize + mapPos.x;
-    float py2 = rDest[idx] * tileSize + mapPos.y;
-    m_pathQueue.push({ px2, py2 });
+    m_pathQueue.push({
+        move.c2 * tileSize + mapPos.x - offset,  // Trừ offset
+        move.r2 * tileSize + mapPos.y - offset   // Trừ offset
+        });
 
-    // Cập nhật logic
-    r = rDest[idx];
-    c = cDest[idx];
+    // Cập nhật tọa độ logic
+    r = move.r2;
+    c = move.c2;
 }
 
 void Mummy::moveOnceGreedy(const Map& map, int pR, int pC) {
     // --- TÍNH TOÁN BƯỚC 1 ---
     int r1 = r, c1 = c;
     int bestDist1 = manhattan(r, c, pR, pC);
+    bool foundStep1 = false;
 
-    // Duyệt 4 hướng để tìm ô hàng xóm gần Player nhất
     for (int k = 0; k < 4; k++) {
-        // Check tường chặn ngay bước 1
         if (hasWall(map, r, c, k)) continue;
-
         int nr = r + dr[k];
         int nc = c + dc[k];
-
-        // Check biên map
         if (nr < 0 || nr >= map.getHeight() || nc < 0 || nc >= map.getWidth()) continue;
 
         int d = manhattan(nr, nc, pR, pC);
-
-        // Nếu khoảng cách mới NHỎ HƠN khoảng cách cũ
         if (d < bestDist1) {
             bestDist1 = d;
             r1 = nr;
             c1 = nc;
+            foundStep1 = true;
         }
     }
 
-    // Nếu không tìm được bước 1 nào tốt hơn -> Đứng yên (Bị kẹt hoặc đã trùng vị trí Player)
-    if (r1 == r && c1 == c) return;
-
+    // Nếu không tìm được bước 1 nào tốt hơn -> Đứng yên
+    if (!foundStep1) return;
 
     // --- TÍNH TOÁN BƯỚC 2 (Từ vị trí r1, c1) ---
     int r2 = r1, c2 = c1;
-    int bestDist2 = bestDist1; // Khoảng cách từ bước 1 tới Player
+    int bestDist2 = bestDist1;
 
-    // Nếu bước 1 đã bắt được Player rồi (dist=0) thì không cần tính bước 2 nữa
+    // Chỉ tính bước 2 nếu chưa bắt được Player
     if (bestDist1 > 0) {
         for (int k = 0; k < 4; k++) {
-            // Check tường từ vị trí bước 1
             if (hasWall(map, r1, c1, k)) continue;
-
             int nr = r1 + dr[k];
             int nc = c1 + dc[k];
-
             if (nr < 0 || nr >= map.getHeight() || nc < 0 || nc >= map.getWidth()) continue;
 
             int d = manhattan(nr, nc, pR, pC);
-
-            // Tìm bước nào giúp gần Player hơn nữa
             if (d < bestDist2) {
                 bestDist2 = d;
                 r2 = nr;
@@ -188,97 +186,99 @@ void Mummy::moveOnceGreedy(const Map& map, int pR, int pC) {
     float tileSize = map.getTileSize();
     sf::Vector2f mapPos = map.getPosition();
 
-    // 1. Luôn đẩy Bước 1 vào hàng đợi
-    float px1 = c1 * tileSize + mapPos.x;
-    float py1 = r1 * tileSize + mapPos.y;
-    m_pathQueue.push({ px1, py1 });
+    // 1. Lấy Dynamic Offset từ Map
+    float offset = map.getDynamicOffset();
 
-    // 2. Chỉ đẩy Bước 2 nếu nó khác Bước 1 (Tức là Mummy đi được tiếp)
+    // 2. Luôn đẩy Bước 1 (NHỚ TRỪ OFFSET)
+    m_pathQueue.push({
+        c1 * tileSize + mapPos.x - offset,
+        r1 * tileSize + mapPos.y - offset
+        });
+
+    // 3. Chỉ đẩy Bước 2 nếu khác Bước 1 (NHỚ TRỪ OFFSET)
     if (r2 != r1 || c2 != c1) {
-        float px2 = c2 * tileSize + mapPos.x;
-        float py2 = r2 * tileSize + mapPos.y;
-        m_pathQueue.push({ px2, py2 });
+        m_pathQueue.push({
+            c2 * tileSize + mapPos.x - offset,
+            r2 * tileSize + mapPos.y - offset
+            });
     }
 
-    // Cập nhật tọa độ logic cuối cùng
+    // Cập nhật tọa độ logic
     r = r2;
     c = c2;
 }
 
+// ==============================
+// 4. MAIN GAME LOOP
+// ==============================
+
 void Mummy::move(const Map& map, const Player& player) {
-    if (m_isMoving) return;
+    // Nếu đang di chuyển hoặc hàng đợi chưa rỗng thì không nhận lệnh mới
+    if (isMoving()) return;
+
     // 1. Quy đổi tọa độ Player từ Pixel sang Grid
     float tileSize = map.getTileSize();
     sf::Vector2f mapPos = map.getPosition();
     sf::Vector2f pPos = player.getPosition();
 
-    int oldR = r;
-    int oldC = c;
-
-    // Logic này lấy từ Player::processInput
-    // Trừ offset map rồi chia cho size gạch
     int pC = static_cast<int>((pPos.x - mapPos.x + tileSize / 2) / tileSize);
     int pR = static_cast<int>((pPos.y - mapPos.y + tileSize / 2) / tileSize);
 
-    // 2. Gọi thuật toán di chuyển
+    // 2. Gọi thuật toán di chuyển (Các hàm này sẽ nạp bước đi vào m_pathQueue)
     switch (mode) {
-    case mummyAlgorithm::Greedy:
+    case MummyAlgorithm::Greedy:
         moveOnceGreedy(map, pR, pC);
         break;
-    case mummyAlgorithm::random:
+    case MummyAlgorithm::Random:
         moveOnceRandom(map);
         break;
     }
 
-    // 3. Cập nhật lại vị trí hiển thị (Pixel) cho khớp với Grid mới
-    // (Lưu ý: Bạn có thể thêm code interpolation ở Update để Mummy trượt mượt mà thay vì nhảy cóc)
+    // 3. KICKSTART: Lấy ngay điểm đầu tiên để bắt đầu di chuyển
     if (!m_pathQueue.empty()) {
-        m_targetPos = m_pathQueue.front(); // Lấy điểm đến bước 1
-        m_pathQueue.pop();                 // Xóa khỏi hàng đợi
-        m_isMoving = true;                 // Bắt đầu di chuyển
+        m_targetPos = m_pathQueue.front();
+        m_pathQueue.pop();
+        m_isMoving = true;
     }
 }
 
 void Mummy::update(float dt) {
-    // 1. Nếu đang trong thời gian "Khựng lại" (Pause)
+    // 1. Xử lý thời gian nghỉ (Pause)
     if (m_pauseTimer > 0.f) {
         m_pauseTimer -= dt;
-        return; // Đứng yên, chưa làm gì cả
+        return;
     }
 
-    // 2. Nếu đang đứng yên NHƯNG trong hàng đợi vẫn còn bước đi (Bước 2)
-    // -> Lấy tiếp ra để đi
+    // 2. Tự động lấy bước tiếp theo từ hàng đợi (nếu đang đứng yên)
     if (!m_isMoving && !m_pathQueue.empty()) {
         m_targetPos = m_pathQueue.front();
         m_pathQueue.pop();
         m_isMoving = true;
     }
 
-    // 3. Logic di chuyển (Interpolation)
+    // 3. Logic trượt (Interpolation)
     if (m_isMoving) {
         sf::Vector2f direction = m_targetPos - m_position;
         float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-
-        // Tốc độ: 300.f (Bạn có thể tăng lên 400 hoặc 500 nếu muốn nó vọt lẹ hơn)
-        float step = 200.f * dt;
+        float step = m_moveSpeed * dt;
 
         if (distance <= step) {
-            // --- ĐÃ ĐẾN ĐÍCH CỦA BƯỚC NÀY ---
+            // Đã đến đích của bước này
             m_position = m_targetPos;
-            m_isMoving = false; // Tạm dừng di chuyển
+            m_isMoving = false;
 
-            // Nếu vừa đi xong bước 1 (hàng đợi vẫn còn bước 2) -> Set thời gian khựng
+            // Nếu vẫn còn bước nữa trong hàng đợi -> Set thời gian khựng
             if (!m_pathQueue.empty()) {
-                m_pauseTimer = 0.15f; // Khựng 0.15s
+                m_pauseTimer = 0.15f; // Khựng 0.15s giữa 2 bước
             }
         }
         else {
-            // --- CHƯA ĐẾN ĐÍCH -> NHÍCH TIẾP ---
+            // Chưa đến -> Nhích tiếp
             sf::Vector2f moveVec = (direction / distance) * step;
             m_position += moveVec;
         }
 
-        // Cập nhật vị trí Sprite
+        // Cập nhật Sprite
         if (m_sprite.has_value()) {
             m_sprite->setPosition(m_position);
         }
@@ -286,12 +286,12 @@ void Mummy::update(float dt) {
 }
 
 void Mummy::render(sf::RenderWindow& window, float scaleRatio) {
-    // Chỉnh lại tâm để vẽ chuẩn (Giống Player)
-    sf::FloatRect bounds = m_sprite->getGlobalBounds();
-    // Giả sử ảnh Mummy cũng cần căn giữa chân
-    // Lấy kích thước Texture gốc vì GlobalBounds đã bị scale
+    if (!m_sprite.has_value()) return;
+
+    // Lấy kích thước Texture gốc
     sf::Vector2u texSize = m_texture.getSize();
 
+    // Set Origin ở giữa chân để căn vị trí cho chuẩn
     m_sprite->setOrigin({ texSize.x / 2.0f, texSize.y - 10.0f });
     m_sprite->setScale({ scaleRatio, scaleRatio });
     m_sprite->setPosition(m_position);

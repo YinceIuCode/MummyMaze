@@ -42,7 +42,8 @@ public:
 	int getWidth() const;                   
 	int getHeight() const;
 	void setTileSize(float size);
-	void draw(sf::RenderWindow& window, Player& player);
+	float getDynamicOffset() const { return dynamicOffset; }
+	void draw(sf::RenderWindow& window, Player& player, Mummy& mummy);
 	void setPosition(float x, float y);
 	sf::Vector2f getPosition() const;
 };

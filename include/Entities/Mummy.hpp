@@ -1,65 +1,99 @@
 ﻿#pragma once
 
-#include "Core/Maze.hpp"
-#include "Entities/Player.hpp"
+// --- STANDARD LIBRARIES ---
 #include <vector>
 #include <cmath>
 #include <cstdlib>
 #include <queue>
+#include <string>
+#include <optional> // Bắt buộc cho std::optional
 
-enum class mummyAlgorithm {
+// --- SFML ---
+#include <SFML/Graphics.hpp>
+
+// --- FORWARD DECLARATIONS ---
+// (Giúp compile nhanh hơn, tránh include vòng tròn)
+class Map;
+class Player;
+
+// --- ENUMS ---
+enum class MummyAlgorithm {
     Greedy,
-    random
+    Random // Viết hoa chữ đầu cho đẹp
 };
 
 class Mummy {
-private:
-    int r, c; // Tọa độ Grid (Hàng, Cột)
-    mummyAlgorithm mode = mummyAlgorithm::Greedy;
-
-    // Biến cho đồ họa
-    std::queue<sf::Vector2f> m_pathQueue;
-    float m_pauseTimer;
-    
-    sf::Texture m_texture;
-    std::optional<sf::Sprite> m_sprite;
-    sf::Vector2f m_position; // Vị trí Pixel để vẽ mượt hơn
-
-    sf::Vector2f m_targetPos; // Vị trí đích đến (Pixel)
-    bool m_isMoving;          // Cờ đang di chuyển
-    float m_moveSpeed;        // Tốc độ di chuyển (Pixel/giây)
-
-    // Hàm phụ: Kiểm tra xem có tường chắn theo hướng di chuyển không
-    // dirIndex: 0=Left, 1=Right, 2=Up, 3=Down (Khớp với mảng dr/dc trong cpp)
-    bool hasWall(const Map& map, int currR, int currC, int dirIndex) const;
-
-    int manhattan(int rr1, int cc1, int rr2, int cc2) const;
-
 public:
+    // ==============================
+    // 1. CONSTRUCTOR & SETUP
+    // ==============================
     Mummy();
 
-    // Khởi tạo texture và vị trí ban đầu
+    // Load ảnh và theme
     void initTexture(const std::string& texturePath);
-
     void loadTheme(const std::string& themeName);
 
-    void setSpawn(int startR, int startC, const Map& map);
+    // Đặt vị trí xuất hiện (Reset trạng thái)
+    void setSpawn(int startR, int startC, float pixelX, float pixelY);
 
-    void setMode(mummyAlgorithm m) { mode = m; }
-    // Logic di chuyển chính
+    // Cài đặt chế độ (Thông minh / Ngẫu nhiên)
+    void setMode(MummyAlgorithm m) { mode = m; }
+
+    // ==============================
+    // 2. MAIN GAME LOOP
+    // ==============================
+    // Logic tìm đường (được gọi theo lượt)
     void move(const Map& map, const Player& player);
 
-    // Các thuật toán cụ thể
-    void moveOnceGreedy(const Map& map, int pR, int pC);
-    void moveOnceRandom(const Map& map);
+    // Cập nhật chuyển động mượt (gọi mỗi frame)
+    void update(float dt);
 
-    // Render vẽ Mummy lên màn hình
+    // Vẽ lên màn hình
     void render(sf::RenderWindow& window, float scaleRatio);
 
+    // ==============================
+    // 3. GETTERS (Lấy thông tin)
+    // ==============================
     int getR() const { return r; }
     int getC() const { return c; }
-    void update(float dt);
+
+    // Cần hàm này để Map tính toán vẽ chồng hình (Z-Order)
+    sf::Vector2f getPosition() const { return m_position; }
+
+    // Kiểm tra xem Mummy có đang bận không (đang trượt hoặc đang khựng lại)
     bool isMoving() const {
         return m_isMoving || !m_pathQueue.empty() || m_pauseTimer > 0.f;
     }
+
+private:
+    // ==============================
+    // 4. PRIVATE VARIABLES
+    // ==============================
+    // --- Logic Game ---
+    int r, c;                           // Tọa độ lưới (Grid)
+    MummyAlgorithm mode;                // Chế độ hiện tại
+    std::queue<sf::Vector2f> m_pathQueue; // Hàng đợi các bước đi
+    float m_pauseTimer;                 // Bộ đếm thời gian nghỉ
+
+    // --- Đồ họa & Chuyển động ---
+    sf::Texture m_texture;
+    std::optional<sf::Sprite> m_sprite; // Sprite có thể rỗng lúc đầu
+
+    sf::Vector2f m_position;            // Vị trí vẽ hiện tại (Pixel)
+    sf::Vector2f m_targetPos;           // Vị trí đang trượt tới (Pixel)
+    bool m_isMoving;                    // Cờ đánh dấu đang trượt
+    float m_moveSpeed;                  // Tốc độ trượt
+
+    // ==============================
+    // 5. HELPER FUNCTIONS
+    // ==============================
+    // Các thuật toán tìm đường cụ thể
+    void moveOnceGreedy(const Map& map, int pR, int pC);
+    void moveOnceRandom(const Map& map);
+
+    // Kiểm tra tường chắn (0: Left, 1: Right, 2: Up, 3: Down)
+    bool hasWall(const Map& map, int currR, int currC, int dirIndex) const;
+
+    // Tính khoảng cách Manhattan
+    int manhattan(int rr1, int cc1, int rr2, int cc2) const;
 };

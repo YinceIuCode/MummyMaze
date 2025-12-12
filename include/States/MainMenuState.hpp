@@ -1,52 +1,41 @@
 ﻿#pragma once
 #include "States/State.hpp"
-#include "States/ModeSelectState.hpp" // Để chuyển sang chọn màn
-//#include "States/CustomizeState.hpp"
-#include "States/SettingState.hpp"
-#include <optional> // Để dùng std::optional
-
+#include "GUI/Button.hpp" // <--- BẮT BUỘC PHẢI CÓ
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 
 class MainMenuState : public State {
 private:
-    // --- BACKGROUND ---
+    // --- VARIABLES ---
     sf::Texture m_bgTexture;
-    std::optional<sf::Sprite> m_bgSprite; // Dùng optional để tránh lỗi constructor
+    std::optional<sf::Sprite> m_bgSprite;
+    sf::Font m_font;
+    std::optional<sf::Text> m_titleText;
 
-    // --- LOGO ---
-	sf::Font m_font;
-	std::optional<sf::Text> m_titleText;
+    // --- BUTTONS (Dùng Class Button mới) ---
+    // Thay toàn bộ std::optional<sf::Sprite> bằng cái này
+    std::unique_ptr<Button> m_btnPlay;
+    std::unique_ptr<Button> m_btnCustomize;
+    std::unique_ptr<Button> m_btnSettings;
+    std::unique_ptr<Button> m_btnHowToPlay;
+    std::unique_ptr<Button> m_btnExit;
+    std::unique_ptr<Button> m_btnResume;
 
-    // --- BUTTON TEXTURES ---
-    sf::Texture m_txPlay;
-    sf::Texture m_txCustomize;
-    sf::Texture m_txSettings;
-    sf::Texture m_txHowToPlay;
-    sf::Texture m_txExit;
-	sf::Texture m_txResume;
+    // --- TEXTURES (Giữ nguyên để load ảnh) ---
+    sf::Texture m_txPlay, m_txCustomize, m_txSettings, m_txHowToPlay, m_txExit, m_txResume;
 
-    // --- BUTTON SPRITES ---
-    // Dùng optional cho phép ta để trống nó lúc đầu
-    std::optional<sf::Sprite> m_btnPlay;
-    std::optional<sf::Sprite> m_btnCustomize;
-    std::optional<sf::Sprite> m_btnSettings;
-    std::optional<sf::Sprite> m_btnHowToPlay;
-    std::optional<sf::Sprite> m_btnExit;
-	std::optional<sf::Sprite> m_btnResume;
+    // --- SOUNDS (Chỉ cần Buffer, Button tự lo phần phát) ---
+    sf::SoundBuffer m_buffHover;
+    sf::SoundBuffer m_buffClick;
 
-    // --- ÂM THANH ---
-    sf::SoundBuffer m_buffHover, m_buffClick;
-    std::optional<sf::Sound> m_sfxHover, m_sfxClick;
-
-    // Biến ghi nhớ nút đang được hover (-1 là không có nút nào)
-    int m_lastHoveredButton = -1;
-
+    // --- STATE DATA ---
     float m_totalTime = 0.f;
-    bool m_isWaitingForMouseRelease = true;
+    bool m_isWaitingForMouseRelease = true; // Chống click nhầm từ màn trước
 
-    // --- LOGIC ---
+    // --- FUNCTIONS ---
     void initVariables();
     void initGui();
-    void updateButtons(); // Xử lý hiệu ứng hover/click
+    void updateButtons(); // Hàm này giờ sẽ gọn hơn nhiều
 
 public:
     MainMenuState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

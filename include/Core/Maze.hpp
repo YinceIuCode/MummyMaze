@@ -13,6 +13,7 @@ struct Cell {
 	bool wallRight = false;
 
 	int floorVariant = 0;
+	int exitVariant = -1;
 };
 
 class Map {
@@ -29,6 +30,8 @@ private:
 	sf::Texture m_texWallVert;            // tường dọc
 	std::vector<sf::Texture> m_texFloors; // Mảng chứa 5 loại gạch
 	std::vector<sf::Texture> m_texBorders;// Mảng chứa 4 khung tường
+
+	sf::Vector2i m_exitGridPos;
 
 
 public:

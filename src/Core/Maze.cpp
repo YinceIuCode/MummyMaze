@@ -98,6 +98,18 @@ void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
                 // Truyền trực tiếp tọa độ đã tính (có trừ dynamicOffset) vào Mummy
                 mummy.setSpawn(y, x, spawnX, spawnY);
             }
+            if (lines[charY - 1][charX] == 'X') {
+				cell.exitVariant = 0;
+            }
+            if (lines[charY + 1][charX] == 'X') {
+				cell.exitVariant = 3;
+            }
+            if (lines[charY][charX + 1] == 'X') {
+				cell.exitVariant = 2;
+            }
+            if (lines[charY][charX - 1] == 'X') {
+				cell.exitVariant = 1;
+            }
 
             // Random sàn nhà
             if (!m_texFloors.empty()) {
@@ -161,10 +173,6 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
             if (cell.wallRight) drawSprite(m_texWallVert, px + m_tileSize / 2, py, -5, 10);
         }
 
-        // --- RENDER ENTITIES --- 
-        // Nếu Player/Mummy đứng ở hàng này -> Vẽ ngay lập tức
-        // (Sẽ đè lên tường trên, nhưng bị tường dưới che -> Tạo hiệu ứng 3D)
-
         if (y == playerGridY) {
             player.render(window, scaleRatio);
         }
@@ -172,7 +180,6 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
             mummy.render(window, scaleRatio);
         }
 
-        // Vẽ tường Dưới (Sẽ đè lên chân nhân vật nếu nhân vật đứng ở ô trên nó)
         for (int x = 0; x < m_width; ++x) {
             float px = x * m_tileSize + posmap.x - dynamicOffset;
             float py = y * m_tileSize + posmap.y - dynamicOffset;

@@ -87,7 +87,8 @@ void Player::processInput(const Map& map) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {
         // Kiểm tra tường phải và giới hạn map
         m_currentDir = Dir::Right;
-        if (!currentCell->wallRight && gridX < map.getWidth() - 1) {
+		std::cerr << currentCell->exitVariant << "\n";
+        if (!currentCell->wallRight && (gridX < map.getWidth() - 1 || currentCell->exitVariant == 2)) {
             nextPos.x += tileSize;
             hasInput = true;
         }
@@ -95,7 +96,8 @@ void Player::processInput(const Map& map) {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) {
         // Kiểm tra tường trái
         m_currentDir = Dir::Left;
-        if (!currentCell->wallLeft && gridX > 0) {
+        std::cerr << currentCell->exitVariant << "\n";
+        if (!currentCell->wallLeft && (gridX > 0 || currentCell->exitVariant == 1)) {
             nextPos.x -= tileSize;
             hasInput = true;
         }
@@ -103,7 +105,8 @@ void Player::processInput(const Map& map) {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
         // Kiểm tra tường trên
         m_currentDir = Dir::Up;
-        if (!currentCell->wallTop && gridY > 0) {
+        std::cerr << currentCell->exitVariant << "\n";
+        if (!currentCell->wallTop && (gridY > 0 || currentCell->exitVariant == 0)) {
             nextPos.y -= tileSize;
             hasInput = true;
         }
@@ -111,7 +114,8 @@ void Player::processInput(const Map& map) {
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
         // Kiểm tra tường dưới
         m_currentDir = Dir::Down;
-        if (!currentCell->wallBottom && gridY < map.getHeight() - 1) {
+        std::cerr << currentCell->exitVariant << "\n";
+        if (!currentCell->wallBottom && (gridY < map.getHeight() - 1 || currentCell->exitVariant == 3)) {
             nextPos.y += tileSize;
             hasInput = true;
         }

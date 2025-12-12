@@ -1,4 +1,5 @@
 ﻿#include "States/GameState.hpp"
+#include <cmath>
 #include <iostream>
 
 GameState::GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, int mapSize)
@@ -52,56 +53,97 @@ void GameState::initVariables() {
 }
 
 void GameState::update(float dt) {
-    // 1. Cập nhật Animation & Di chuyển mượt (Luôn chạy)
     m_player.update(dt);
     m_mummy.update(dt);
 
-    // 2. Xử lý thoát game (Chỉ cần check 1 lần)
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) {
         m_states->pop();
-        // Không cần sleep ở đây nếu pop xử lý tốt, nhưng giữ lại nếu bạn muốn delay nhẹ
         sf::sleep(sf::milliseconds(200));
         return;
     }
 
-    // 3. MÁY TRẠNG THÁI (TURN MACHINE) - Logic theo lượt
-    switch (m_turn) {
+    // Helper: Lấy tọa độ Grid hiện tại của Player
+    auto getPlayerGrid = [&]() -> sf::Vector2i {
+        float tileSize = m_map.getTileSize();
+        sf::Vector2f mapPos = m_map.getPosition();
+        sf::Vector2f pPos = m_player.getPosition();
+        float offset = m_map.getDynamicOffset();
 
-        // --- GIAI ĐOẠN 1: CHỜ NGƯỜI CHƠI BẤM PHÍM ---
+        // Tính tọa độ tương đối
+        float relativeX = pPos.x - mapPos.x + offset + tileSize / 2;
+        float relativeY = pPos.y - mapPos.y + offset + tileSize / 2;
+
+        // DÙNG std::floor ĐỂ LÀM TRÒN XUỐNG (Xử lý số âm chuẩn)
+        // floor(-0.4) = -1.0 -> cast sang int thành -1
+        int c = static_cast<int>(std::floor(relativeX / tileSize));
+        int r = static_cast<int>(std::floor(relativeY / tileSize));
+
+        return { c, r };
+        };
+
+    switch (m_turn) {
     case TurnState::PlayerInput:
         m_player.processInput(m_map);
-
         if (m_player.isMoving()) {
             m_turn = TurnState::PlayerMoving;
         }
         break;
 
-        // --- GIAI ĐOẠN 2: CHỜ NGƯỜI CHƠI ĐI XONG ---
     case TurnState::PlayerMoving:
         if (!m_player.isMoving()) {
-            // Player đến nơi -> Chuyển sang lượt Mummy tính toán
+            sf::Vector2i pGrid = getPlayerGrid();
+
+            // --- KIỂM TRA THẮNG (Player ra ngoài map) ---
+            int mapW = m_map.getWidth();
+            int mapH = m_map.getHeight();
+            std::cerr << mapW << " " << mapH << "\n";
+            std::cerr << pGrid.x << " " << pGrid.y << "\n";
+
+            // Nếu tọa độ nhỏ hơn 0 hoặc lớn hơn kích thước map -> Đã thoát thành công
+            if (pGrid.x < 0 || pGrid.x >= mapW || pGrid.y < 0 || pGrid.y >= mapH) {
+                std::cout << ">>> VICTORY! ESCAPED! <<<\n";
+                sf::sleep(sf::milliseconds(500));
+                m_states->pop(); // Quay về Menu
+                return;
+            }
+
+            // Nếu chưa thắng thì chuyển lượt cho Mummy
             m_turn = TurnState::MummyThinking;
         }
         break;
 
-        // --- GIAI ĐOẠN 3: MUMMY TÍNH ĐƯỜNG ---
     case TurnState::MummyThinking:
-        // Mummy tìm đường (sẽ tự set m_isMoving = true nếu tìm được)
         m_mummy.move(m_map, m_player);
-
+        // Logic kiểm tra nếu Mummy bắt được ngay khi tính toán (ít xảy ra)
         if (m_mummy.isMoving()) {
             m_turn = TurnState::MummyMoving;
         }
         else {
-            // Mummy bị kẹt hoặc không cần đi -> Trả lượt ngay
+            // Mummy đứng yên, check va chạm luôn
+            sf::Vector2i pGrid = getPlayerGrid();
+            if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
+                std::cout << ">>> DEFEAT! <<<\n";
+                sf::sleep(sf::milliseconds(500));
+                m_states->pop();
+                return;
+            }
             m_turn = TurnState::PlayerInput;
         }
         break;
 
-        // --- GIAI ĐOẠN 4: CHỜ MUMMY ĐI XONG ---
     case TurnState::MummyMoving:
         if (!m_mummy.isMoving()) {
-            // Mummy đến nơi -> Trả lượt cho người chơi
+            // --- KIỂM TRA THUA (Mummy bắt được) ---
+            sf::Vector2i pGrid = getPlayerGrid();
+
+            // So sánh tọa độ Mummy (R, C) với Player (Y, X)
+            if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
+                std::cout << ">>> DEFEAT! MUMMY CAUGHT YOU <<<\n";
+                sf::sleep(sf::milliseconds(500));
+                m_states->pop(); // Quay về Menu
+                return;
+            }
+
             m_turn = TurnState::PlayerInput;
         }
         break;

@@ -48,6 +48,10 @@ void Map::loadTheme(const std::string& themeName) {
         }
     }
     std::cerr << "Theme loaded: " << themeName << "\n";
+
+    if (!m_texExit.loadFromFile("assets/textures/exit.png")) {
+		std::cerr << "Error loading exit texture\n";
+    }
 }
 
 Map::~Map() {}
@@ -212,6 +216,53 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         borderL.setOrigin({ bL.size.x, bL.size.y / 2.f });
         borderL.setPosition({ -60.f + posmap.x, 300.f + posmap.y });
         window.draw(borderL);
+    }
+
+    for (int y = 0; y < m_height; ++y) {
+        for (int x = 0; x < m_width; ++x) {
+            const Cell& cell = m_grid[y][x];
+
+            // Nếu ô này không có cửa thì bỏ qua
+            if (cell.exitVariant == -1) continue;
+
+            float px = x * m_tileSize + posmap.x - dynamicOffset;
+            float py = y * m_tileSize + posmap.y - dynamicOffset;
+
+            sf::Sprite exitSprite(m_texExit);
+            sf::FloatRect b = exitSprite.getLocalBounds();
+
+            // Đặt tâm xoay vào giữa ảnh
+            exitSprite.setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
+            exitSprite.setScale({ scaleRatio, scaleRatio });
+            exitSprite.setPosition({ px, py });
+
+            // Xoay và tinh chỉnh vị trí dựa theo hướng cửa (exitVariant)
+            // Lưu ý: exitVariant của bạn đang set là:
+            // 0: Up (trên), 3: Down (dưới), 2: Right (phải), 1: Left (trái)
+
+            float offset = m_tileSize / 2.f;
+            // offset này để đẩy cái cửa ra sát mép tường. 
+            // Có thể cần +/- thêm một chút tùy vào hình vẽ cửa của bạn dày hay mỏng.
+
+            if (cell.exitVariant == 0) { // Cửa trên (UP)
+                exitSprite.setRotation(sf::degrees(-90.f));
+                exitSprite.move({ 0, -offset - 60.f * scaleRatio }); // Dời lên mép trên
+            }
+            else if (cell.exitVariant == 3) { // Cửa dưới (DOWN)
+                exitSprite.setRotation(sf::degrees(90.f));
+                exitSprite.move({ 0, offset + 60.f * scaleRatio }); // Dời xuống mép dưới
+            }
+            else if (cell.exitVariant == 1) { // Cửa trái (LEFT)
+                exitSprite.setRotation(sf::degrees(180.f));
+                exitSprite.move({ -offset - 60.f * scaleRatio, 0 }); // Dời sang trái
+            }
+            else if (cell.exitVariant == 2) { // Cửa phải (RIGHT)
+                exitSprite.setRotation(sf::degrees(0.f));
+                exitSprite.move({ offset + 60.f * scaleRatio, 0 }); // Dời sang phải
+            }
+
+            window.draw(exitSprite);
+        }
     }
 }
 

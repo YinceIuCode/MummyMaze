@@ -28,6 +28,7 @@ private:
 
 	sf::Texture m_texWallHoriz;           // tường ngang
 	sf::Texture m_texWallVert;            // tường dọc
+	sf::Texture m_texExit;           // tường cửa thoát
 	std::vector<sf::Texture> m_texFloors; // Mảng chứa 5 loại gạch
 	std::vector<sf::Texture> m_texBorders;// Mảng chứa 4 khung tường
 

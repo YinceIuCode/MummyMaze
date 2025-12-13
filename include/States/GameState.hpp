@@ -21,6 +21,8 @@ private:
     Player m_player;
 	Mummy m_mummy;
     int m_currentMapSize;
+    bool m_isWin = false;
+	bool m_isDefeat = false;
 
     void initVariables();
     void generateNewMaze(int mapsize); // Hàm copy từ Game qua
@@ -32,4 +34,6 @@ public:
 
     void update(float dt) override;
     void render(sf::RenderWindow& window) override;
+    bool isWin() { return m_isWin; }
+	bool isDefeat() { return m_isDefeat; }
 };

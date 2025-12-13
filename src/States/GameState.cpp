@@ -27,6 +27,8 @@ void GameState::initVariables() {
     // Map luôn cao tối đa 720px để vừa màn hình
     float maxMapHeight = 720.0f;
     float tileSize = maxMapHeight / m_currentMapSize;
+    m_isWin = false;
+	m_isDefeat = false;
 
     // Giới hạn không cho ô quá to (nếu map 6x6)
     if (tileSize > 120.0f) tileSize = 120.0f;
@@ -104,6 +106,7 @@ void GameState::update(float dt) {
                 std::cout << ">>> VICTORY! ESCAPED! <<<\n";
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop(); // Quay về Menu
+                m_isWin = true;
                 return;
             }
 
@@ -125,6 +128,7 @@ void GameState::update(float dt) {
                 std::cout << ">>> DEFEAT! <<<\n";
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop();
+				m_isDefeat = true;
                 return;
             }
             m_turn = TurnState::PlayerInput;
@@ -141,6 +145,7 @@ void GameState::update(float dt) {
                 std::cout << ">>> DEFEAT! MUMMY CAUGHT YOU <<<\n";
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop(); // Quay về Menu
+				m_isDefeat = true;
                 return;
             }
 

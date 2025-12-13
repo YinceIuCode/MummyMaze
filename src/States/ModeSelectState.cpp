@@ -73,7 +73,10 @@ void ModeSelectState::updateButtons() {
             if (m_currentHoveredBtn != &txt) {
                 m_currentHoveredBtn = &txt;
                 m_sfx.emplace(m_buffHover);
-                m_sfx->play();
+                if (!GameData::isSfxMuted) { // Nếu KHÔNG bị Mute thì mới kêu
+                    // Giả sử bạn có biến sound tên là m_sound hoặc m_sfx
+                    m_sfx->play();
+                }
             }
         }
         else {
@@ -104,7 +107,10 @@ void ModeSelectState::updateButtons() {
             m_sfx.emplace(m_buffClick);
             auto clickAction = [&](sf::Text& btn, auto action) {
                 btn.setScale({ 0.9f, 0.9f });
-                m_sfx->play();
+                if (!GameData::isSfxMuted) { // Nếu KHÔNG bị Mute thì mới kêu
+                    // Giả sử bạn có biến sound tên là m_sound hoặc m_sfx
+                    m_sfx->play();
+                }
 
                 m_window->clear();
                 this->render(*m_window);
@@ -123,7 +129,10 @@ void ModeSelectState::updateButtons() {
                 clickAction(m_btn10x10, [&]() { createAndPlay(10); });
             }
             else if (m_btnBack.getGlobalBounds().contains(mousePos)) {
-                m_sfx->play();
+                if (!GameData::isSfxMuted) { // Nếu KHÔNG bị Mute thì mới kêu
+                    // Giả sử bạn có biến sound tên là m_sound hoặc m_sfx
+                    m_sfx->play();
+                }
                 sf::sleep(sf::milliseconds(150));
                 m_states->pop();
             }

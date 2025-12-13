@@ -1,4 +1,5 @@
 ﻿#include <GUI/Button.hpp>
+#include <Core/GameData.hpp>
 #include <iostream>
 
 Button::Button(const sf::Texture& texture, float x, float y, float scale) {
@@ -46,7 +47,10 @@ void Button::update(const sf::Vector2f& mousePos, bool isMousePressed, float tot
             m_isHovered = true;
             if (m_buffHover) {
                 m_sfx.emplace(*m_buffHover);
-                m_sfx->play();
+                if (!GameData::isSfxMuted) { // Nếu KHÔNG bị Mute thì mới kêu
+                    // Giả sử bạn có biến sound tên là m_sound hoặc m_sfx
+                    m_sfx->play();
+                }
             }
         }
 
@@ -95,7 +99,10 @@ void Button::executeClickEffect(std::function<void()> drawSceneFunc, std::functi
     // 1. Phát tiếng Click
     if (m_buffClick) {
         m_sfx.emplace(*m_buffClick);
-        m_sfx->play();
+        if (!GameData::isSfxMuted) { // Nếu KHÔNG bị Mute thì mới kêu
+            // Giả sử bạn có biến sound tên là m_sound hoặc m_sfx
+            m_sfx->play();
+        }
     }
 
     // 2. Chỉnh Visual thành trạng thái "Đang Nhấn" (Thu nhỏ + Tối)

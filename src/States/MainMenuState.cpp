@@ -1,6 +1,7 @@
 ﻿#include "States/MainMenuState.hpp"
 #include "States/ModeSelectState.hpp" // Nhớ include các state chuyển đến
 #include "States/SettingState.hpp" 
+#include "States/CustomizeState.hpp"
 #include <fstream>
 
 #include <iostream>
@@ -146,6 +147,14 @@ void MainMenuState::updateButtons() {
                 m_window->close();
                 });
         }
+        
+        // 4. CUSTOMIZE
+		else if (m_btnCustomize->isClicked()) {
+            isHandled = true;
+            triggerButton(m_btnCustomize, [&]() {
+                m_states->push(std::make_unique<CustomizeState>(m_window, m_states));
+                });
+		}
 
         if (m_btnResume->isClicked()) {
             // Kiểm tra xem có file save không
@@ -207,7 +216,13 @@ void MainMenuState::updateButtons() {
                 });
         }
 
-        // ... Các nút khác tương tự ...
+		// 4. CUSTOMIZE
+        else if (m_btnCustomize->isClicked()) {
+            isHandled = true;
+            triggerButton(m_btnCustomize, [&]() {
+                m_states->push(std::make_unique<CustomizeState>(m_window, m_states));
+                });
+		}
     }
 
     if (!isMousePressed) isHandled = false;

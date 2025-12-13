@@ -4,6 +4,7 @@
 #include <stack>
 #include <memory>
 #include "States/State.hpp"
+#include "Core/GameData.hpp"
 
 class Game {
 private:
@@ -21,7 +22,8 @@ private:
 
     // --- Hàm khởi tạo nội bộ ---
     void initWindow();
-    void initStates(); // Hàm này sẽ push màn hình đầu tiên (ví dụ Menu hoặc Game)
+    void initStates(); 
+    void initMusic();
 
 public:
     // --- Constructor / Destructor ---

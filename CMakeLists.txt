@@ -25,9 +25,9 @@ set(SOURCES
     src/Entities/Player.cpp
     src/Core/MazeGenerator.cpp 
     src/States/GameState.cpp
- "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp" "src/Entities/Mummy.cpp" "src/GUI/Button.cpp" "src/Core/TimeControl.cpp")
+ "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp" "src/Entities/Mummy.cpp" "src/GUI/Button.cpp" "src/Core/TimeControl.cpp" "src/Core/GameData.cpp")
 
-add_executable(${PROJECT_NAME} ${SOURCES} "src/Entities/Player.cpp" "src/Core/MazeGenerator.cpp" "src/States/GameState.cpp" "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp" "src/Entities/Mummy.cpp" "src/GUI/Button.cpp" "src/Core/TimeControl.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES} "src/Entities/Player.cpp" "src/Core/MazeGenerator.cpp" "src/States/GameState.cpp" "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp" "src/Entities/Mummy.cpp" "src/GUI/Button.cpp" "src/Core/TimeControl.cpp" "src/Core/GameData.cpp")
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

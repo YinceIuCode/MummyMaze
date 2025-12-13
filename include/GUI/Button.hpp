@@ -8,8 +8,6 @@ class Button {
 private:
     // --- VISUALS ---
     std::optional<sf::Sprite> m_sprite;
-	std::optional<sf::Text> m_text;
-    bool m_hasText;
 
     // --- STATE ---
     bool m_isHovered;
@@ -23,7 +21,7 @@ private:
     // Lưu con trỏ tới Buffer (vì Buffer phải được load ở State/ResourceHolder)
     const sf::SoundBuffer* m_buffHover;
     const sf::SoundBuffer* m_buffClick;
-    std::optional<sf::Sound> m_sfx; // 1 loa dùng chung cho cả hover và click
+    std::optional<sf::Sound> m_sfx;
 
 public:
     // Constructor: Texture, Tọa độ, Scale gốc

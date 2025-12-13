@@ -4,9 +4,7 @@
 #include "Entities/Player.hpp"
 #include "Entities/Mummy.hpp"
 #include "Core/MazeGenerator.hpp"
-#include "Core/Maze.hpp"
 #include "Core/GameData.hpp"
-#include "States/State.hpp"
 #include "Core/TimeControl.hpp"
 
 enum class TurnState {
@@ -25,8 +23,6 @@ private:
 
     int m_currentMapSize;
     string m_currentMapPath = "assets/mazes/maze1.txt";
-    bool m_isWin = false;
-	bool m_isDefeat = false;
 
     void saveGame();
     std::string loadGameData(int& pGridX, int& pGridY, int& mGridX, int& mGridY);
@@ -42,6 +38,4 @@ public:
 
     void update(float dt) override;
     void render(sf::RenderWindow& window) override;
-    bool isWin() { return m_isWin; }
-	bool isDefeat() { return m_isDefeat; }
 };

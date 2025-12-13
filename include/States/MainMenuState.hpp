@@ -11,6 +11,8 @@ private:
     std::optional<sf::Sprite> m_bgSprite;
     sf::Font m_font;
     std::optional<sf::Text> m_titleText;
+    std::optional<sf::Text> m_msgNoSave;
+    float m_msgTimer = 0.f;
 
     // --- BUTTONS (Dùng Class Button mới) ---
     // Thay toàn bộ std::optional<sf::Sprite> bằng cái này

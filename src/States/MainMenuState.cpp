@@ -24,7 +24,8 @@ void MainMenuState::initVariables() {
     if (!m_font.openFromFile("assets/fonts/Akashi.ttf")) {
         std::cerr << "ERROR: Akashi.ttf\n";
     }
-    m_titleText.emplace(m_font, "SYSTEM MAZE", 100); // SFML 3.0: Font trước
+    m_titleText.emplace(m_font, "SYSTEM MAZE", 100);
+    
 
     // 2. Load Textures (Giữ nguyên)
     if (!m_txPlay.loadFromFile("assets/textures/Menu/btn_play.png")) std::cerr << "Err Play\n";
@@ -43,6 +44,15 @@ void MainMenuState::initGui() {
     float centerX = m_window->getSize().x / 2.f;
     float startY = 350.f;
     float gapY = 110.f;
+
+    m_msgNoSave.emplace(m_font, "NO SAVE DATA!", 30);
+    m_msgNoSave->setFillColor(sf::Color::Red);
+    m_msgNoSave->setStyle(sf::Text::Bold);
+    sf::FloatRect textBounds = m_msgNoSave->getLocalBounds();
+
+    m_msgNoSave->setOrigin({ 0, textBounds.size.y / 2.f });
+    m_msgNoSave->setPosition({ centerX + 200, startY + gapY - 10 });
+    m_msgTimer = 0.f;
 
     // Setup Title
     if (m_titleText.has_value()) {
@@ -142,13 +152,16 @@ void MainMenuState::updateButtons() {
             std::ifstream checkFile("assets/mazes/mazesave.txt");
             if (checkFile.good()) {
                 checkFile.close();
-
-                // Chuyển sang GameState với cờ isResuming = true
-                // mapPath để trống "" cũng được vì vào trong nó sẽ tự đọc lại từ file
                 m_states->push(std::make_unique<GameState>(m_window, m_states, "", true));
             }
             else {
                 std::cout << "No save file found!\n";
+                m_msgTimer = 2.0f;
+                if (m_msgNoSave.has_value()) {
+                    sf::Color c = m_msgNoSave->getFillColor();
+                    c.a = 255;
+                    m_msgNoSave->setFillColor(c);
+                }
             }
         }
     }
@@ -203,6 +216,19 @@ void MainMenuState::updateButtons() {
 void MainMenuState::update(float dt) {
     m_totalTime += dt; // Tăng thời gian để tính hiệu ứng thở
     updateButtons();
+
+    if (m_msgTimer > 0.f) {
+        m_msgTimer -= dt;
+        int alpha = static_cast<int>((m_msgTimer / 2.0f) * 255.f);
+        if (alpha < 0) alpha = 0; if (alpha > 255) alpha = 255;
+
+        // Kiểm tra an toàn trước khi chỉnh
+        if (m_msgNoSave.has_value()) {
+            sf::Color c = m_msgNoSave->getFillColor();
+            c.a = alpha;
+            m_msgNoSave->setFillColor(c);
+        }
+    }
 }
 
 void MainMenuState::render(sf::RenderWindow& window) {
@@ -216,4 +242,7 @@ void MainMenuState::render(sf::RenderWindow& window) {
     m_btnSettings->render(window);
     m_btnHowToPlay->render(window);
     m_btnExit->render(window);
+    if (m_msgTimer > 0.f && m_msgNoSave.has_value()) {
+        window.draw(*m_msgNoSave);
+    }
 }

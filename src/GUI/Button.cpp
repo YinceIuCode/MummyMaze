@@ -7,7 +7,6 @@ Button::Button(const sf::Texture& texture, float x, float y, float scale) {
     m_enableBreathing = false;
     m_isHovered = false;
     m_isPressed = false;
-    m_hasText = false;
     m_buffHover = nullptr;
     m_buffClick = nullptr;
 

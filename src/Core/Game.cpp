@@ -1,5 +1,6 @@
 ﻿#include "Core/Game.hpp"
 #include "States/MainMenuState.hpp"
+#include <iostream>
 
 void Game::initStates() {
     // Mở game lên là vào Menu đầu tiên
@@ -17,6 +18,7 @@ void Game::initWindow() {
 Game::Game() {
     this->initWindow();
     this->initStates();
+	this->initMusic();
 }
 
 Game::~Game() {
@@ -43,6 +45,21 @@ void Game::update() {
     }
     else {
         m_window.close(); // Hết màn hình thì tắt game
+    }
+}
+
+void Game::initMusic() {
+    // 1. Mở file nhạc (Nhớ đường dẫn phải đúng)
+    if (!GameData::bgMusic.openFromFile("assets/audios/music.mp3")) {
+        std::cerr << "ERROR: Could not load background music!\n";
+    }
+    else {
+        GameData::bgMusic.setLooping(true);
+
+        // Quan trọng: Set âm lượng theo biến đã lưu
+        GameData::bgMusic.setVolume(GameData::musicVolume);
+
+        GameData::bgMusic.play();
     }
 }
 

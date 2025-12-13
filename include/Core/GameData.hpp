@@ -1,9 +1,15 @@
 ﻿#pragma once
-#include <string>
+#include <SFML/Audio.hpp>
 
 struct GameData {
-    // Biến static để truy cập ở mọi nơi mà không cần khởi tạo
-    inline static float masterVolume = 100.0f; // 0.0f -> 100.0f
-    inline static bool isSoundOn = true;
-    inline static std::string currentTheme = "Playmap"; // Mặc định
+    // --- SETTINGS (Âm thanh) ---
+    static float musicVolume; // 0.0f -> 100.0f
+    static bool isSfxMuted;
+    static bool isMuted;      // Tắt tiếng hoàn toàn
+
+    // --- CUSTOMIZE (Giao diện) ---
+    static int currentTheme; 
+
+    // --- OBJECTS (Đối tượng sống dai nhất game) ---
+    static sf::Music bgMusic; // Nhạc nền (để đây để Settings chỉnh được volume)
 };

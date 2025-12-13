@@ -35,13 +35,13 @@ void ModeSelectState::initGui() {
     m_btn8x8.setCharacterSize(70);
     m_rect = m_btn8x8.getGlobalBounds();
     m_btn8x8.setOrigin(m_rect.getCenter());
-    m_btn8x8.setPosition({ m_window->getSize().x / 2.0f, 600.f });
+    m_btn8x8.setPosition({ m_window->getSize().x / 2.0f, 650.f });
 
     m_btn10x10.setString("10 x 10");
     m_btn10x10.setCharacterSize(70);
     m_rect = m_btn10x10.getGlobalBounds();
     m_btn10x10.setOrigin(m_rect.getCenter());
-    m_btn10x10.setPosition({ m_window->getSize().x / 2.0f, 700.f });
+    m_btn10x10.setPosition({ m_window->getSize().x / 2.0f, 800.f });
 
     m_btnBack.setString("BACK");
     m_rect = m_btnBack.getGlobalBounds();
@@ -52,6 +52,13 @@ void ModeSelectState::initGui() {
 		std::cerr << "Error loading background texture\n";
     }
 	m_background.emplace(m_bgTexture);
+
+    if (!m_buffHover.loadFromFile("assets/audios/hover.wav")) {
+		std::cerr << "Error loading hover sound\n";
+    }
+    if (!m_buffClick.loadFromFile("assets/audios/click.wav")) {
+		std::cerr << "Error loading click sound\n";
+    }
 }
 
 void ModeSelectState::updateButtons() {
@@ -60,48 +67,64 @@ void ModeSelectState::updateButtons() {
 
     // Hover effect (đổi màu khi chuột chỉ vào)
     auto handleHover = [&](sf::Text& txt) {
-        if (txt.getGlobalBounds().contains(mousePos)) txt.setFillColor(sf::Color::Red);
-        else txt.setFillColor(sf::Color::White);
-        };
+        if (txt.getGlobalBounds().contains(mousePos)) {
+            txt.setFillColor(sf::Color::Red);
+            txt.setScale({ 1.1f, 1.1f });
+            if (m_currentHoveredBtn != &txt) {
+                m_currentHoveredBtn = &txt;
+                m_sfx.emplace(m_buffHover);
+                m_sfx->play();
+            }
+        }
+        else {
+            txt.setFillColor(sf::Color::White);
+            txt.setScale({ 1.0f, 1.0f });
+            if (m_currentHoveredBtn == &txt) {
+                m_currentHoveredBtn = nullptr;
+            }
+        }
+    };
     handleHover(m_btn6x6); handleHover(m_btn8x8); handleHover(m_btn10x10); handleHover(m_btnBack);
 
     auto createAndPlay = [&](int size) {
-        // 1. Tạo mê cung & Lưu file (Giữ nguyên)
         generate_maze gen(size);
         gen.generate();
         gen.print_maze();
 
-        // 2. CHUẨN BỊ GAME STATE (Nhưng khoan hãy push)
         auto newGameState = std::make_unique<GameState>(m_window, m_states, "assets/mazes/maze1.txt", false);
-
-        // 3. KỸ THUẬT SWAP (TRÁO ĐỔI)
-        // Mục tiêu: Xóa ModeSelect đi, thay bằng GameState
-        // Stack: [Menu, Select] -> [Menu, Game]
-
-        // QUAN TRỌNG: Lưu con trỏ m_states ra biến cục bộ
-        // Vì sau lệnh pop(), đối tượng 'this' (ModeSelectState) sẽ bị hủy, biến m_states sẽ không còn truy cập được.
         auto statesStack = m_states;
-
-        // BƯỚC A: Xóa màn hình chọn mode hiện tại
         statesStack->pop();
 
-        // BƯỚC B: Đẩy màn hình Game vào
         statesStack->push(std::move(newGameState));
-        };
+    };
 
     // Click effect
     if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
         if (!isHandled) {
-            if (m_btn6x6.getGlobalBounds().contains(mousePos)) {
-                createAndPlay(6); // Tạo map 6x6 -> Lưu -> Chơi
+            m_sfx.emplace(m_buffClick);
+            auto clickAction = [&](sf::Text& btn, auto action) {
+                btn.setScale({ 0.9f, 0.9f });
+                m_sfx->play();
+
+                m_window->clear();
+                this->render(*m_window);
+                m_window->display();
+
+                sf::sleep(sf::milliseconds(150));
+                action();
+                };
+            if (m_btn6x6.getGlobalBounds().contains(mousePos)) {                
+                clickAction(m_btn6x6, [&]() { createAndPlay(6); });;
             }
-            else if (m_btn8x8.getGlobalBounds().contains(mousePos)) {
-                createAndPlay(8); // Tạo map 8x8 -> Lưu -> Chơi
+            else if (m_btn8x8.getGlobalBounds().contains(mousePos)) {                
+                clickAction(m_btn8x8, [&]() { createAndPlay(8); });
             }
-            else if (m_btn10x10.getGlobalBounds().contains(mousePos)) {
-                createAndPlay(10); // Tạo map 10x10 -> Lưu -> Chơi
+            else if (m_btn10x10.getGlobalBounds().contains(mousePos)) {                
+                clickAction(m_btn10x10, [&]() { createAndPlay(10); });
             }
             else if (m_btnBack.getGlobalBounds().contains(mousePos)) {
+                m_sfx->play();
+                sf::sleep(sf::milliseconds(150));
                 m_states->pop();
             }
             isHandled = true;
@@ -109,6 +132,9 @@ void ModeSelectState::updateButtons() {
     }
     else {
         isHandled = false;
+        m_btn6x6.setScale({ 1.0f, 1.0f });
+        m_btn8x8.setScale({ 1.0f, 1.0f });
+        m_btn10x10.setScale({ 1.0f, 1.0f });
     }
 }
 

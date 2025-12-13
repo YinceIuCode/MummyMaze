@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "States/State.hpp"
 #include "States/GameState.hpp"
+#include <SFML/Audio.hpp>
 
 class ModeSelectState : public State {
 private:
@@ -12,6 +13,13 @@ private:
     sf::Text m_btnBack;
 	sf::Texture m_bgTexture;
 	std::optional<sf::Sprite> m_background;
+
+    sf::SoundBuffer m_buffHover;
+    sf::SoundBuffer m_buffClick;
+    std::optional<sf::Sound> m_sfx;
+
+    sf::Text* m_currentHoveredBtn = nullptr;
+    bool m_isClick = false;
 
     void initFonts();
     void initGui();

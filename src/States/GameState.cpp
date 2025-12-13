@@ -2,6 +2,25 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
+
+void clearSaveData() {
+    std::string folderPath = "assets/mazes/";
+
+    if (std::filesystem::exists(folderPath)) {
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                try {
+                    std::filesystem::remove(entry.path());
+                    std::cout << "Deleted: " << entry.path() << "\n";
+                }
+                catch (const std::filesystem::filesystem_error& e) {
+                    std::cerr << "Error deleting: " << e.what() << "\n";
+                }
+            }
+        }
+    }
+}
 
 GameState::GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, std::string mapPath, bool isResuming)
     : State(window, states)
@@ -132,54 +151,45 @@ void GameState::initVariables()
         fileCount.close();
     }
 
-    // --- SỬA ĐOẠN TÍNH TOÁN NÀY ---
-    // Công thức map text của bạn là: TextLines = MapSize * 2 + 1
-    // Ví dụ: Map 6x6 -> 13 dòng. Map 10x10 -> 21 dòng.
-    // => MapSize = (TextLines - 1) / 2
+    if (lineCount < 3) lineCount = 13; 
 
-    if (lineCount < 3) lineCount = 13; // Fallback nếu đọc lỗi
-
-    int logicalSize = (lineCount - 1) / 2; // Ra 6, 8, hoặc 10
-    m_currentMapSize = logicalSize; // Cập nhật lại biến này để dùng về sau
+    int logicalSize = (lineCount - 1) / 2; 
+    m_currentMapSize = logicalSize; 
 
     // 2. Tính TileSize dựa trên LOGICAL SIZE
     float maxMapHeight = 720.0f;
     float tileSize = maxMapHeight / logicalSize;
-
-    // Giới hạn max 120px cho đẹp (nếu map < 6x6 thì không phóng to quá)
     if (tileSize > 120.0f) tileSize = 120.0f;
-
     m_map.setTileSize(tileSize);
 
     // 3. Load hình ảnh (Theme)
-    m_map.loadTheme(GameData::currentTheme);
-    m_player.loadTheme(GameData::currentTheme);
-    m_mummy.loadTheme(GameData::currentTheme);
+	std::string themePath;
+    if (GameData::currentTheme == 0) {
+        themePath = "Playmap"; // Ví dụ đường dẫn theme 1
+    }
+    else if (GameData::currentTheme == 1) {
+        themePath = "Nobi"; // Ví dụ đường dẫn theme 2
+    }
+    else {
+        // Fallback mặc định nếu theme bị lỗi
+        themePath = "Playmap";
+    }
+    m_map.loadTheme(themePath);
+    m_player.loadTheme(themePath);
+    m_mummy.loadTheme(themePath);
 
     // 4. Đặt vị trí Map ra giữa màn hình
-    // Logic tính toán: (Màn hình rộng 1290)
-    // Offset X = (1290 - (Size thực tế của Map)) / 2
 
     float realMapWidth = logicalSize * tileSize; // Ví dụ 6 * 120 = 720
     float offsetX = (1290.f - realMapWidth) / 2.f;
-
-    // Offset Y tính tương tự hoặc fix cứng nếu muốn
-    float offsetY = (720.f - realMapWidth) / 2.f + 60.f; // +60 cho thanh tiêu đề
-
-    // Gán vào map (Map sẽ tự căn chỉnh các ô gạch dựa trên offset này)
-    // Lưu ý: Class Map của bạn đang dùng posmap để vẽ, nhưng lại trừ dynamicOffset
-    // Để đơn giản, bạn set cứng offset chuẩn vào đây:
+    float offsetY = (720.f - realMapWidth) / 2.f + 60.f;
     m_map.setPosition(1290.f / 2.f - 300.f, 210.f);
-    // Hoặc giữ nguyên logic cũ của bạn nếu nó đã căn giữa tốt:
-    // m_map.setPosition(1290 / 2.f - 300.f, 210.f);
 
     // 5. Load Map & Sinh nhân vật
     m_map.loadMap(m_currentMapPath, m_player, m_mummy);
 
     time_machine.push_state(m_player, m_mummy);
 
-    m_isWin = false;
-    m_isDefeat = false;
     m_turn = TurnState::PlayerInput;
 }
 
@@ -212,8 +222,6 @@ void GameState::update(float dt) {
         float relativeX = pPos.x - mapPos.x + offset + tileSize / 2;
         float relativeY = pPos.y - mapPos.y + offset + tileSize / 2;
 
-        // DÙNG std::floor ĐỂ LÀM TRÒN XUỐNG (Xử lý số âm chuẩn)
-        // floor(-0.4) = -1.0 -> cast sang int thành -1
         int c = static_cast<int>(std::floor(relativeX / tileSize));
         int r = static_cast<int>(std::floor(relativeY / tileSize));
 
@@ -281,9 +289,9 @@ void GameState::update(float dt) {
             // Nếu tọa độ nhỏ hơn 0 hoặc lớn hơn kích thước map -> Đã thoát thành công
             if (pGrid.x < 0 || pGrid.x >= mapW || pGrid.y < 0 || pGrid.y >= mapH) {
                 std::cout << ">>> VICTORY! ESCAPED! <<<\n";
+                clearSaveData();
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop(); // Quay về Menu
-				m_isWin = true;
                 return;
             }
 
@@ -303,9 +311,9 @@ void GameState::update(float dt) {
             sf::Vector2i pGrid = getPlayerGrid();
             if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
                 std::cout << ">>> DEFEAT! <<<\n";
+                clearSaveData();
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop();
-				m_isDefeat = true;
                 return;
             }
             m_turn = TurnState::PlayerInput;
@@ -320,9 +328,9 @@ void GameState::update(float dt) {
             // So sánh tọa độ Mummy (R, C) với Player (Y, X)
             if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
                 std::cout << ">>> DEFEAT! MUMMY CAUGHT YOU <<<\n";
+				clearSaveData();
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop(); // Quay về Menu
-				m_isDefeat = true;
                 return;
             }
 

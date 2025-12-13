@@ -7,6 +7,7 @@
 #include "Core/Maze.hpp"
 #include "Core/GameData.hpp"
 #include "States/State.hpp"
+#include "Core/TimeControl.hpp"
 
 enum class TurnState {
     PlayerInput,   // Chờ người chơi bấm nút
@@ -20,17 +21,24 @@ private:
     Map m_map;
     Player m_player;
 	Mummy m_mummy;
+    time_controller time_machine;
+
     int m_currentMapSize;
+    string m_currentMapPath = "assets/mazes/maze1.txt";
     bool m_isWin = false;
 	bool m_isDefeat = false;
+
+    void saveGame();
+    std::string loadGameData(int& pGridX, int& pGridY, int& mGridX, int& mGridY);
 
     void initVariables();
     void generateNewMaze(int mapsize); // Hàm copy từ Game qua
     TurnState m_turn;
 
 public:
-    GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, int mapSize);
+    GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, std::string mapPath, bool isResuming = false);
     virtual ~GameState();
+    
 
     void update(float dt) override;
     void render(sf::RenderWindow& window) override;

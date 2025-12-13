@@ -10,6 +10,8 @@ private:
     sf::Text m_btn8x8;
     sf::Text m_btn10x10;
     sf::Text m_btnBack;
+	sf::Texture m_bgTexture;
+	std::optional<sf::Sprite> m_background;
 
     void initFonts();
     void initGui();

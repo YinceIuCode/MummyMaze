@@ -1,6 +1,7 @@
 ﻿#include "States/MainMenuState.hpp"
 #include "States/ModeSelectState.hpp" // Nhớ include các state chuyển đến
 #include "States/SettingState.hpp" 
+#include <fstream>
 
 #include <iostream>
 
@@ -136,7 +137,20 @@ void MainMenuState::updateButtons() {
                 });
         }
 
-        // ... Các nút khác tương tự ...
+        if (m_btnResume->isClicked()) {
+            // Kiểm tra xem có file save không
+            std::ifstream checkFile("assets/mazes/mazesave.txt");
+            if (checkFile.good()) {
+                checkFile.close();
+
+                // Chuyển sang GameState với cờ isResuming = true
+                // mapPath để trống "" cũng được vì vào trong nó sẽ tự đọc lại từ file
+                m_states->push(std::make_unique<GameState>(m_window, m_states, "", true));
+            }
+            else {
+                std::cout << "No save file found!\n";
+            }
+        }
     }
 
     if (!isMousePressed) isHandled = false;// --- XỬ LÝ CLICK ---

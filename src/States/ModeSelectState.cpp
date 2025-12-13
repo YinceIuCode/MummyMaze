@@ -12,7 +12,7 @@ ModeSelectState::ModeSelectState(sf::RenderWindow* window, std::stack<std::uniqu
 ModeSelectState::~ModeSelectState() {}
 
 void ModeSelectState::initFonts() {
-    if (!m_font.openFromFile("assets/fonts/arial.ttf")) {
+    if (!m_font.openFromFile("assets/fonts/Akashi.ttf")) {
         std::cerr << "ERROR: Could not load font\n";
     }
 }
@@ -20,30 +20,38 @@ void ModeSelectState::initFonts() {
 void ModeSelectState::initGui() {
     // Setup cơ bản (bạn có thể căn chỉnh lại tọa độ cho đẹp)
     m_title.setString("SELECT MODE");
-    m_title.setCharacterSize(60);
+    m_title.setCharacterSize(100);
     sf::FloatRect m_rect = m_title.getGlobalBounds();
     m_title.setOrigin(m_rect.getCenter());
-    m_title.setPosition({ m_window->getSize().x / 2.0f, 100.f});
+    m_title.setPosition({ m_window->getSize().x / 2.0f, 250.f});
 
     m_btn6x6.setString("6 x 6");
+    m_btn6x6.setCharacterSize(70);
     m_rect = m_btn6x6.getGlobalBounds();
     m_btn6x6.setOrigin(m_rect.getCenter());
-    m_btn6x6.setPosition({ m_window->getSize().x / 2.0f, 300.f });
+    m_btn6x6.setPosition({ m_window->getSize().x / 2.0f, 500.f });
 
     m_btn8x8.setString("8 x 8");
+    m_btn8x8.setCharacterSize(70);
     m_rect = m_btn8x8.getGlobalBounds();
     m_btn8x8.setOrigin(m_rect.getCenter());
-    m_btn8x8.setPosition({ m_window->getSize().x / 2.0f, 400.f });
+    m_btn8x8.setPosition({ m_window->getSize().x / 2.0f, 600.f });
 
     m_btn10x10.setString("10 x 10");
+    m_btn10x10.setCharacterSize(70);
     m_rect = m_btn10x10.getGlobalBounds();
     m_btn10x10.setOrigin(m_rect.getCenter());
-    m_btn10x10.setPosition({ m_window->getSize().x / 2.0f, 500.f });
+    m_btn10x10.setPosition({ m_window->getSize().x / 2.0f, 700.f });
 
     m_btnBack.setString("BACK");
     m_rect = m_btnBack.getGlobalBounds();
     m_btnBack.setOrigin(m_rect.getCenter());
     m_btnBack.setPosition({ 100.f, 50.f });
+
+    if (!m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) {
+		std::cerr << "Error loading background texture\n";
+    }
+	m_background.emplace(m_bgTexture);
 }
 
 void ModeSelectState::updateButtons() {
@@ -57,18 +65,41 @@ void ModeSelectState::updateButtons() {
         };
     handleHover(m_btn6x6); handleHover(m_btn8x8); handleHover(m_btn10x10); handleHover(m_btnBack);
 
+    auto createAndPlay = [&](int size) {
+        // 1. Tạo mê cung & Lưu file (Giữ nguyên)
+        generate_maze gen(size);
+        gen.generate();
+        gen.print_maze();
+
+        // 2. CHUẨN BỊ GAME STATE (Nhưng khoan hãy push)
+        auto newGameState = std::make_unique<GameState>(m_window, m_states, "assets/mazes/maze1.txt", false);
+
+        // 3. KỸ THUẬT SWAP (TRÁO ĐỔI)
+        // Mục tiêu: Xóa ModeSelect đi, thay bằng GameState
+        // Stack: [Menu, Select] -> [Menu, Game]
+
+        // QUAN TRỌNG: Lưu con trỏ m_states ra biến cục bộ
+        // Vì sau lệnh pop(), đối tượng 'this' (ModeSelectState) sẽ bị hủy, biến m_states sẽ không còn truy cập được.
+        auto statesStack = m_states;
+
+        // BƯỚC A: Xóa màn hình chọn mode hiện tại
+        statesStack->pop();
+
+        // BƯỚC B: Đẩy màn hình Game vào
+        statesStack->push(std::move(newGameState));
+        };
+
     // Click effect
     if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
         if (!isHandled) {
             if (m_btn6x6.getGlobalBounds().contains(mousePos)) {
-                // TRUYỀN SIZE 6 VÀO GAMESTATE
-                m_states->push(std::make_unique<GameState>(m_window, m_states, 6));
+                createAndPlay(6); // Tạo map 6x6 -> Lưu -> Chơi
             }
             else if (m_btn8x8.getGlobalBounds().contains(mousePos)) {
-                m_states->push(std::make_unique<GameState>(m_window, m_states, 8));
+                createAndPlay(8); // Tạo map 8x8 -> Lưu -> Chơi
             }
             else if (m_btn10x10.getGlobalBounds().contains(mousePos)) {
-                m_states->push(std::make_unique<GameState>(m_window, m_states, 10));
+                createAndPlay(10); // Tạo map 10x10 -> Lưu -> Chơi
             }
             else if (m_btnBack.getGlobalBounds().contains(mousePos)) {
                 m_states->pop();
@@ -86,6 +117,7 @@ void ModeSelectState::update(float dt) {
 }
 
 void ModeSelectState::render(sf::RenderWindow& window) {
+    window.draw(*m_background);
     window.draw(m_title);
     window.draw(m_btn6x6);
     window.draw(m_btn8x8);

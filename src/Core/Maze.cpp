@@ -182,6 +182,7 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         }
         if (y == mummyGridY) {
             mummy.render(window, scaleRatio);
+			std::cerr << "Mummy drawn at: " << mummy.getR() << " " << mummy.getC() << "\n";
         }
 
         for (int x = 0; x < m_width; ++x) {

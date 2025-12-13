@@ -1,36 +1,152 @@
 ﻿#include "States/GameState.hpp"
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
-GameState::GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, int mapSize)
+GameState::GameState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states, std::string mapPath, bool isResuming)
     : State(window, states)
 {
-    this->m_currentMapSize = mapSize;
-    this->initVariables();
+    // Lưu lại path để lần sau save tiếp
+    m_currentMapPath = mapPath;
+
+    // Biến tạm để chứa dữ liệu load
+    int pGX = 0, pGY = 0, mGX = 0, mGY = 0;
+    std::string savedMapPath = "";
+
+    // Nếu là Resume -> Đọc file trước
+    if (isResuming) {
+        savedMapPath = loadGameData(pGX, pGY, mGX, mGY);
+        if (!savedMapPath.empty()) {
+            m_currentMapPath = savedMapPath; // Cập nhật map đúng với file save
+        }
+    }
+
+    initVariables(); // Khởi tạo Player, Mummy, Map...
+
+    // Load Map (Dùng mapPath hoặc map vừa đọc được từ file save)
+    m_map.loadMap(m_currentMapPath, m_player, m_mummy);
+
+    // --- NẾU LÀ RESUME THÌ GHI ĐÈ VỊ TRÍ ---
+    if (isResuming && !savedMapPath.empty()) {
+        // Tính toán lại vị trí Pixel từ Grid
+        float tileSize = m_map.getTileSize();
+        sf::Vector2f mapPos = m_map.getPosition();
+        float offset = m_map.getDynamicOffset();
+
+        // Công thức: Pixel = Grid * TileSize + MapPos - Offset
+        float pPixelX = pGX * tileSize + mapPos.x - offset;
+        float pPixelY = pGY * tileSize + mapPos.y - offset;
+        m_player.setPosition(pPixelX, pPixelY);
+
+        float mPixelX = mGX * tileSize + mapPos.x - offset;
+        float mPixelY = mGY * tileSize + mapPos.y - offset;
+
+        // Mummy setSpawn hoặc setPosition tùy hàm bạn viết
+        // Lưu ý: Mummy thường lưu (Row, Col) tức là (Y, X)
+        m_mummy.setSpawn(mGY, mGX, mPixelX, mPixelY);
+
+        std::cout << "Resumed Game Successfully!\n";
+    }
 }
 
 GameState::~GameState() {}
 
-void GameState::generateNewMaze(int mapsize) {
+void GameState::generateNewMaze(int mapsize)
+{
     generate_maze maze(mapsize);
-    do {
+    do
+    {
         maze.generate();
     } while (maze.can_solve_the_maze() > 2); // Đảm bảo map giải được và đủ khó
     maze.print_maze();
 }
 
-void GameState::initVariables() {
-    // 1. Tạo mê cung mới
-    this->generateNewMaze(m_currentMapSize);
+void GameState::saveGame() {
+    std::ofstream outFile("assets/mazes/mazesave.txt");
+    if (outFile.is_open()) {
+        outFile << m_currentMapPath << "\n";
 
-    // 2. Tính toán kích thước ô gạch (TileSize)
-    // Map luôn cao tối đa 720px để vừa màn hình
+        auto getPlayerGrid = [&]() -> sf::Vector2i {
+            float tileSize = m_map.getTileSize();
+            sf::Vector2f mapPos = m_map.getPosition();
+            sf::Vector2f pPos = m_player.getPosition();
+            float offset = m_map.getDynamicOffset();
+
+            // Tính tọa độ tương đối
+            float relativeX = pPos.x - mapPos.x + offset + tileSize / 2;
+            float relativeY = pPos.y - mapPos.y + offset + tileSize / 2;
+
+            // DÙNG std::floor ĐỂ LÀM TRÒN XUỐNG (Xử lý số âm chuẩn)
+            // floor(-0.4) = -1.0 -> cast sang int thành -1
+            int c = static_cast<int>(std::floor(relativeX / tileSize));
+            int r = static_cast<int>(std::floor(relativeY / tileSize));
+
+            return { c, r };
+            };
+
+        // 2. Tính tọa độ lưới Player và lưu
+        sf::Vector2i pGrid = getPlayerGrid(); // Hàm bạn vừa viết lúc nãy
+        outFile << pGrid.x << " " << pGrid.y << "\n";
+
+        // 3. Lưu tọa độ lưới Mummy
+        outFile << m_mummy.getR() << " " << m_mummy.getC() << "\n";
+
+        std::cout << "Game Saved!\n";
+        outFile.close();
+    }
+}
+
+std::string GameState::loadGameData(int& pGridX, int& pGridY, int& mGridX, int& mGridY) {
+    std::ifstream inFile("assets/mazes/mazesave.txt");
+    std::string mapPath = "";
+
+    if (inFile.is_open()) {
+        // Đọc dòng 1: Tên Map
+        std::getline(inFile, mapPath);
+
+        // Đọc dòng 2: Player Grid X Y
+        inFile >> pGridX >> pGridY;
+
+        // Đọc dòng 3: Mummy Grid Row Col (Row là Y, Col là X)
+        int mR, mC;
+        inFile >> mR >> mC;
+        mGridY = mR;
+        mGridX = mC;
+
+        inFile.close();
+    }
+    return mapPath;
+}
+
+void GameState::initVariables()
+{
+    // 1. Đọc file để xem Map to bao nhiêu
+    std::ifstream fileCount(m_currentMapPath);
+    int lineCount = 0;
+    std::string tempLine;
+    if (fileCount.is_open()) {
+        while (std::getline(fileCount, tempLine)) {
+            // Chỉ đếm dòng có dữ liệu
+            if (tempLine.length() > 1) lineCount++;
+        }
+        fileCount.close();
+    }
+
+    // --- SỬA ĐOẠN TÍNH TOÁN NÀY ---
+    // Công thức map text của bạn là: TextLines = MapSize * 2 + 1
+    // Ví dụ: Map 6x6 -> 13 dòng. Map 10x10 -> 21 dòng.
+    // => MapSize = (TextLines - 1) / 2
+
+    if (lineCount < 3) lineCount = 13; // Fallback nếu đọc lỗi
+
+    int logicalSize = (lineCount - 1) / 2; // Ra 6, 8, hoặc 10
+    m_currentMapSize = logicalSize; // Cập nhật lại biến này để dùng về sau
+
+    // 2. Tính TileSize dựa trên LOGICAL SIZE
     float maxMapHeight = 720.0f;
-    float tileSize = maxMapHeight / m_currentMapSize;
-    m_isWin = false;
-	m_isDefeat = false;
+    float tileSize = maxMapHeight / logicalSize;
 
-    // Giới hạn không cho ô quá to (nếu map 6x6)
+    // Giới hạn max 120px cho đẹp (nếu map < 6x6 thì không phóng to quá)
     if (tileSize > 120.0f) tileSize = 120.0f;
 
     m_map.setTileSize(tileSize);
@@ -40,17 +156,30 @@ void GameState::initVariables() {
     m_player.loadTheme(GameData::currentTheme);
     m_mummy.loadTheme(GameData::currentTheme);
 
-    // 4. Đặt vị trí Map ra giữa màn hình TRƯỚC
-    // (Logic tính toán của bạn: 1290/2 - 300)
-    float offsetX = 1290.f / 2.f - 300.f;
-    float offsetY = 210.f;
-    m_map.setPosition(offsetX, offsetY);
+    // 4. Đặt vị trí Map ra giữa màn hình
+    // Logic tính toán: (Màn hình rộng 1290)
+    // Offset X = (1290 - (Size thực tế của Map)) / 2
+
+    float realMapWidth = logicalSize * tileSize; // Ví dụ 6 * 120 = 720
+    float offsetX = (1290.f - realMapWidth) / 2.f;
+
+    // Offset Y tính tương tự hoặc fix cứng nếu muốn
+    float offsetY = (720.f - realMapWidth) / 2.f + 60.f; // +60 cho thanh tiêu đề
+
+    // Gán vào map (Map sẽ tự căn chỉnh các ô gạch dựa trên offset này)
+    // Lưu ý: Class Map của bạn đang dùng posmap để vẽ, nhưng lại trừ dynamicOffset
+    // Để đơn giản, bạn set cứng offset chuẩn vào đây:
+    m_map.setPosition(1290.f / 2.f - 300.f, 210.f);
+    // Hoặc giữ nguyên logic cũ của bạn nếu nó đã căn giữa tốt:
+    // m_map.setPosition(1290 / 2.f - 300.f, 210.f);
 
     // 5. Load Map & Sinh nhân vật
-    // Hàm này sẽ dùng vị trí Map vừa set ở trên để đặt Player/Mummy chuẩn luôn
-    m_map.loadMap("assets/mazes/maze1.txt", m_player, m_mummy);
+    m_map.loadMap(m_currentMapPath, m_player, m_mummy);
 
-    // 6. Bắt đầu lượt chơi
+    time_machine.push_state(m_player, m_mummy);
+
+    m_isWin = false;
+    m_isDefeat = false;
     m_turn = TurnState::PlayerInput;
 }
 
@@ -63,8 +192,16 @@ void GameState::update(float dt) {
         sf::sleep(sf::milliseconds(200));
         return;
     }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)) { // Ví dụ phím P để Pause/Save
+        saveGame();
+        sf::sleep(sf::milliseconds(200));
+        m_states->pop();
+        return;
+    }
 
-    // Helper: Lấy tọa độ Grid hiện tại của Player
+    bool isPressingKey = false;
+    // 3. MÁY TRẠNG THÁI (TURN MACHINE) - Logic theo lượt
+
     auto getPlayerGrid = [&]() -> sf::Vector2i {
         float tileSize = m_map.getTileSize();
         sf::Vector2f mapPos = m_map.getPosition();
@@ -83,14 +220,54 @@ void GameState::update(float dt) {
         return { c, r };
         };
 
-    switch (m_turn) {
+    switch (m_turn)
+    {
+        // --- GIAI ĐOẠN 1: CHỜ NGƯỜI CHƠI BẤM PHÍM ---
     case TurnState::PlayerInput:
-        m_player.processInput(m_map);
-        if (m_player.isMoving()) {
-            m_turn = TurnState::PlayerMoving;
+    {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U)) {
+            auto old_state = time_machine.undo_state(m_player, m_mummy);
+            m_player = old_state.first;
+            m_mummy = old_state.second;
+
+            sf::sleep(sf::milliseconds(200));
+            return;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I)) {
+            auto future_state = time_machine.redo_state();
+            m_player = future_state.first;
+            m_mummy = future_state.second;
+            sf::sleep(sf::milliseconds(200));
+            return;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R)) {
+			m_map.loadMap("assets/mazes/maze1.txt", m_player, m_mummy);
+            sf::sleep(sf::milliseconds(200));
+            return;
+		}
+
+        isPressingKey = (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) ||
+            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S));
+
+        if (isPressingKey && !m_player.isMoving()) {
+            time_machine.push_state(m_player, m_mummy);
+            m_player.processInput(m_map);
+            if (m_player.isMoving())
+            {
+                m_turn = TurnState::PlayerMoving;
+            }
+            else {
+                time_machine.undo_state(m_player, m_mummy);
+            }
         }
         break;
-
+    }
     case TurnState::PlayerMoving:
         if (!m_player.isMoving()) {
             sf::Vector2i pGrid = getPlayerGrid();
@@ -106,7 +283,7 @@ void GameState::update(float dt) {
                 std::cout << ">>> VICTORY! ESCAPED! <<<\n";
                 sf::sleep(sf::milliseconds(500));
                 m_states->pop(); // Quay về Menu
-                m_isWin = true;
+				m_isWin = true;
                 return;
             }
 
@@ -155,8 +332,9 @@ void GameState::update(float dt) {
     }
 }
 
-void GameState::render(sf::RenderWindow& window) {
-    // Chỉ cần gọi hàm này. 
+void GameState::render(sf::RenderWindow& window)
+{
+    // Chỉ cần gọi hàm này.
     // Bên trong Map::draw đã có logic vẽ Player và Mummy theo chiều sâu (Z-Order)
     m_map.draw(window, m_player, m_mummy);
 }

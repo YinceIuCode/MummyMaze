@@ -2,6 +2,7 @@
 #include "States/ModeSelectState.hpp" // Nhớ include các state chuyển đến
 #include "States/SettingState.hpp" 
 #include "States/CustomizeState.hpp"
+#include "States/HowtoplayState.hpp"
 #include <fstream>
 
 #include <iostream>
@@ -55,6 +56,12 @@ void MainMenuState::initGui() {
     m_msgNoSave->setPosition({ centerX + 200, startY + gapY - 10 });
     m_msgTimer = 0.f;
 
+	m_HowToPlayText.emplace(m_font, "HOW TO PLAY", 20);
+	m_HowToPlayText->setFillColor(sf::Color::White);
+	m_HowToPlayText->setOrigin({ m_HowToPlayText->getLocalBounds().size.x, m_HowToPlayText->getLocalBounds().size.y / 2});
+	m_HowToPlayText->setPosition({ m_window->getSize().x - 60.f * 2 - 90.f, 50.f});
+	m_HowToPlayText->setStyle(sf::Text::Underlined | sf::Text::Bold);
+
     // Setup Title
     if (m_titleText.has_value()) {
         sf::FloatRect bounds = m_titleText->getLocalBounds();
@@ -82,8 +89,7 @@ void MainMenuState::initGui() {
     m_btnSettings = std::make_unique<Button>(m_txSettings, m_window->getSize().x - 60.f, 60.f, 2.0f);
     m_btnSettings->setSound(m_buffHover, m_buffClick);
 
-    // Lưu ý: HowToPlay bạn chưa gán vị trí ở code cũ, mình tạm để góc trái
-    m_btnHowToPlay = std::make_unique<Button>(m_txHowToPlay, 60.f, 60.f, 2.0f);
+    m_btnHowToPlay = std::make_unique<Button>(m_txHowToPlay, m_window->getSize().x - 60.f * 2 - 30.f, 60.f, 2.0f);
     m_btnHowToPlay->setSound(m_buffHover, m_buffClick);
 }
 
@@ -95,8 +101,7 @@ void MainMenuState::updateButtons() {
     if (isMousePressed && m_isWaitingForMouseRelease) return;
     if (!isMousePressed) m_isWaitingForMouseRelease = false;
 
-    // 2. CẬP NHẬT LOGIC NÚT (Class Button tự lo hover/scale/sound)
-    // blocked = false nghĩa là nút hoạt động bình thường
+    // 2. CẬP NHẬT TRẠNG THÁI VISUAL (Hover, Breathing...)
     m_btnPlay->update(mousePos, isMousePressed, m_totalTime);
     m_btnResume->update(mousePos, isMousePressed, m_totalTime);
     m_btnCustomize->update(mousePos, isMousePressed, m_totalTime);
@@ -104,25 +109,24 @@ void MainMenuState::updateButtons() {
     m_btnHowToPlay->update(mousePos, isMousePressed, m_totalTime);
     m_btnExit->update(mousePos, isMousePressed, m_totalTime);
 
-    // 3. XỬ LÝ SỰ KIỆN CLICK (Dùng hàm isClicked của class Button)
+    // 3. XỬ LÝ CLICK (Chỉ viết 1 lần duy nhất ở đây)
     static bool isHandled = false;
 
-    // --- XỬ LÝ CLICK ---
     if (isMousePressed && !isHandled) {
 
-        // Helper lambda để gọi hàm click mới
+        // Helper lambda
         auto triggerButton = [&](std::unique_ptr<Button>& btn, auto action) {
             btn->executeClickEffect(
-                // Tham số 1: drawSceneFunc (Hàm vẽ lại toàn bộ cảnh)
-                [&]() {
-                    m_window->clear();       // 1. Xóa màn hình cũ
-                    this->render(*m_window); // 2. Vẽ lại Background, Title, và TẤT CẢ nút (bao gồm nút đang bị méo)
-                    m_window->display();     // 3. Đẩy lên màn hình
+                [&]() { // Draw Func
+                    m_window->clear();
+                    this->render(*m_window);
+                    m_window->display();
                 },
-                // Tham số 2: onFinished (Hàm chuyển màn)
-                action
+                action // On Finished Func
             );
             };
+
+        // --- CÁC NÚT CHUYỂN MÀN ---
 
         // 1. PLAY
         if (m_btnPlay->isClicked()) {
@@ -131,7 +135,6 @@ void MainMenuState::updateButtons() {
                 m_states->push(std::make_unique<ModeSelectState>(m_window, m_states));
                 });
         }
-
         // 2. SETTINGS
         else if (m_btnSettings->isClicked()) {
             isHandled = true;
@@ -139,7 +142,6 @@ void MainMenuState::updateButtons() {
                 m_states->push(std::make_unique<SettingState>(m_window, m_states));
                 });
         }
-
         // 3. EXIT
         else if (m_btnExit->isClicked()) {
             isHandled = true;
@@ -147,24 +149,40 @@ void MainMenuState::updateButtons() {
                 m_window->close();
                 });
         }
-        
         // 4. CUSTOMIZE
-		else if (m_btnCustomize->isClicked()) {
+        else if (m_btnCustomize->isClicked()) {
             isHandled = true;
             triggerButton(m_btnCustomize, [&]() {
                 m_states->push(std::make_unique<CustomizeState>(m_window, m_states));
                 });
-		}
-
-        if (m_btnResume->isClicked()) {
-            // Kiểm tra xem có file save không
+        }
+        // 5. HOW TO PLAY
+        else if (m_btnHowToPlay->isClicked()) {
+            isHandled = true;
+            triggerButton(m_btnHowToPlay, [&]() {
+                m_states->push(std::make_unique<HowToPlayState>(m_window, m_states));
+                });
+        }
+        // 6. RESUME (Logic đã fix lỗi file rỗng)
+        else if (m_btnResume->isClicked()) {
             std::ifstream checkFile("assets/mazes/mazesave.txt");
-            if (checkFile.good()) {
+            bool hasData = false;
+
+            // Kiểm tra file tồn tại VÀ có dữ liệu
+            if (checkFile.is_open()) {
+                if (checkFile.peek() != std::ifstream::traits_type::eof()) {
+                    hasData = true;
+                }
                 checkFile.close();
+            }
+
+            if (hasData) {
+                // Vào game
                 m_states->push(std::make_unique<GameState>(m_window, m_states, "", true));
             }
             else {
-                std::cout << "No save file found!\n";
+                // Báo lỗi
+                std::cout << "No valid save file found!\n";
                 m_msgTimer = 2.0f;
                 if (m_msgNoSave.has_value()) {
                     sf::Color c = m_msgNoSave->getFillColor();
@@ -175,56 +193,7 @@ void MainMenuState::updateButtons() {
         }
     }
 
-    if (!isMousePressed) isHandled = false;// --- XỬ LÝ CLICK ---
-    if (isMousePressed && !isHandled) {
-
-        // Helper lambda để gọi hàm click mới
-        auto triggerButton = [&](std::unique_ptr<Button>& btn, auto action) {
-            btn->executeClickEffect(
-                // Tham số 1: drawSceneFunc (Hàm vẽ lại toàn bộ cảnh)
-                [&]() {
-                    m_window->clear();       // 1. Xóa màn hình cũ
-                    this->render(*m_window); // 2. Vẽ lại Background, Title, và TẤT CẢ nút (bao gồm nút đang bị méo)
-                    m_window->display();     // 3. Đẩy lên màn hình
-                },
-                // Tham số 2: onFinished (Hàm chuyển màn)
-                action
-            );
-            };
-
-        // 1. PLAY
-        if (m_btnPlay->isClicked()) {
-            isHandled = true;
-            triggerButton(m_btnPlay, [&]() {
-                m_states->push(std::make_unique<ModeSelectState>(m_window, m_states));
-                });
-        }
-
-        // 2. SETTINGS
-        else if (m_btnSettings->isClicked()) {
-            isHandled = true;
-            triggerButton(m_btnSettings, [&]() {
-                m_states->push(std::make_unique<SettingState>(m_window, m_states));
-                });
-        }
-
-        // 3. EXIT
-        else if (m_btnExit->isClicked()) {
-            isHandled = true;
-            triggerButton(m_btnExit, [&]() {
-                m_window->close();
-                });
-        }
-
-		// 4. CUSTOMIZE
-        else if (m_btnCustomize->isClicked()) {
-            isHandled = true;
-            triggerButton(m_btnCustomize, [&]() {
-                m_states->push(std::make_unique<CustomizeState>(m_window, m_states));
-                });
-		}
-    }
-
+    // Reset cờ khi nhả chuột
     if (!isMousePressed) isHandled = false;
 }
 
@@ -249,6 +218,7 @@ void MainMenuState::update(float dt) {
 void MainMenuState::render(sf::RenderWindow& window) {
     if (m_bgSprite.has_value()) window.draw(*m_bgSprite);
     if (m_titleText.has_value()) window.draw(*m_titleText);
+	if (m_HowToPlayText.has_value()) window.draw(*m_HowToPlayText);
 
     // Vẽ nút bằng hàm render của class Button
     m_btnPlay->render(window);

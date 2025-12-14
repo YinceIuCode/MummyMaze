@@ -23,11 +23,10 @@ void CustomizeState::initVariables() {
     if (!m_txArrowRight.loadFromFile("assets/textures/Menu/arrow_right.png")) {
 		std::cerr << "Err Arrow Right\n";
     }
-    if (!m_buffClick.loadFromFile("assets/audios/click.wav")) {
+    if (!m_buffClick.loadFromFile("assets/audios/hover.wav")) {
 		std::cerr << "Err Click Sound\n";
     }
 
-    // 2. KHAI BÁO DANH SÁCH THEME (Chỉ cần Tên & Tên Folder)
     m_themes = {
         {"ANCIENT EGYPT", "Playmap"},
         {"DORAEMON",  "Nobi"},

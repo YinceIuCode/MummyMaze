@@ -12,6 +12,7 @@ private:
     sf::Font m_font;
     std::optional<sf::Text> m_titleText;
     std::optional<sf::Text> m_msgNoSave;
+	std::optional<sf::Text> m_HowToPlayText;
     float m_msgTimer = 0.f;
 
     // --- BUTTONS (Dùng Class Button mới) ---

@@ -1,0 +1,37 @@
+# --- Build & Output Folders (Bỏ qua thư mục build nặng) ---
+build/
+bin/
+out/
+x64/
+Debug/
+Release/
+cmake-build-debug/
+cmake-build-release/
+
+# --- IDE & System Files (File rác của VS Code / Visual Studio) ---
+.vscode/
+.idea/
+.vs/
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.sln
+*.vcxproj
+
+# --- Compiled Files (Bỏ qua file chạy sinh ra sau khi build) ---
+*.exe
+*.dll
+*.lib
+*.a
+*.pdb
+*.obj
+*.o
+
+# --- OS Files (File rác của Windows/Mac) ---
+.DS_Store
+Thumbs.db
+
+# --- LƯU Ý ---
+# Không bỏ qua thư mục assets vì game cần hình ảnh/nhạc
+!assets/

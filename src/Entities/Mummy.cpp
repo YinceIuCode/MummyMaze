@@ -1,51 +1,59 @@
 ﻿#include "Entities/Mummy.hpp"
-
-// --- QUAN TRỌNG: Phải include 2 file này vì header chỉ khai báo trước ---
 #include "Core/Maze.hpp"
 #include "Entities/Player.hpp"
-
 #include <iostream>
 
-// Định nghĩa thứ tự hướng đi: 0: Left, 1: Right, 2: Up, 3: Down
+const std::string MUMMY_DIR_NAMES[] = { "Down", "Left", "Right", "Up" };
 const int dr[4] = { 0, 0, -1, 1 };
 const int dc[4] = { -1, 1, 0, 0 };
 
-// ==============================
-// 1. CONSTRUCTOR & SETUP
-// ==============================
-
 Mummy::Mummy() : r(0), c(0) {
     m_isMoving = false;
-    m_moveSpeed = 200.0f; // Tốc độ pixel/giây (Tăng lên 200 cho mượt)
+    m_moveSpeed = 200.0f; 
     m_pauseTimer = 0.f;
-    mode = MummyAlgorithm::Greedy; // Mặc định là Greedy
-}
+    mode = MummyAlgorithm::Greedy;
 
-void Mummy::initTexture(const std::string& texturePath) {
-    if (!m_texture.loadFromFile(texturePath)) {
-        std::cerr << "ERROR: Khong tim thay anh Mummy: " << texturePath << "\n";
-    }
-    m_sprite.emplace(m_texture);
+    m_currentDir = 0;
+    m_currentFrame = 0;
+    m_animTimer = 0.f;
+    m_animStep = 0;
 
-    // Mặc định cho ẩn đi nếu chưa setSpawn
     m_position = { -1000.f, -1000.f };
-    if (m_sprite.has_value()) {
-        m_sprite->setPosition(m_position);
-    }
 }
 
 void Mummy::loadTheme(const std::string& themeName) {
-    // Đảm bảo đường dẫn file ảnh đúng với cấu trúc thư mục của bạn
-    std::string path = "assets/textures/" + themeName + "/Mummy/mummy1.1.1.3.png";
-    this->initTexture(path);
+    std::string path = "assets/textures/" + themeName + "/Mummy/";
+
+    m_textures.clear();
+    m_textures.resize(4); 
+
+    for (int dir = 0; dir < 4; dir++) {
+        m_textures[dir].resize(3); 
+
+        for (int frame = 0; frame < 3; frame++) {
+            std::string fileName = MUMMY_DIR_NAMES[dir] + "_" + std::to_string(frame) + ".png";
+            std::string fullPath = path + fileName;
+
+            if (!m_textures[dir][frame].loadFromFile(fullPath)) {
+                std::cerr << "ERROR: Khong tim thay anh Mummy: " << fullPath << "\n";
+                if (frame == 0 && dir == 0) {
+                    if (!m_textures[dir][frame].loadFromFile("assets/textures/" + themeName + "/Mummy/mummy1.1.1.3.png")) {
+						std::cerr << "ERROR: Khong tim thay anh Mummy fallback!\n";
+                    }
+                }
+            }
+        }
+    }
+
+    m_currentFrame = 0;
+    m_currentDir = 0; 
+    m_animTimer = 0.f;
 }
 
-// Sửa tham số hàm setSpawn để nhận thêm pixelX, pixelY
 void Mummy::setSpawn(int startR, int startC, float pixelX, float pixelY) {
     r = startR;
     c = startC;
 
-    // Không cần tính toán lại dựa trên Map nữa, dùng luôn tọa độ Map gửi sang
     m_position = { pixelX, pixelY };
     m_targetPos = { pixelX, pixelY };
 
@@ -59,12 +67,8 @@ void Mummy::setSpawn(int startR, int startC, float pixelX, float pixelY) {
     }
 }
 
-// ==============================
-// 2. HELPER FUNCTIONS
-// ==============================
-
 bool Mummy::hasWall(const Map& map, int currR, int currC, int dirIndex) const {
-    const Cell* cell = map.getCell(currC, currR); // Map::getCell nhận (x, y) tức là (col, row)
+    const Cell* cell = map.getCell(currC, currR);
     if (!cell) return true;
 
     switch (dirIndex) {
@@ -80,12 +84,7 @@ int Mummy::manhattan(int rr1, int cc1, int rr2, int cc2) const {
     return std::abs(rr1 - rr2) + std::abs(cc1 - cc2);
 }
 
-// ==============================
-// 3. MOVEMENT ALGORITHMS
-// ==============================
-
 void Mummy::moveOnceRandom(const Map& map) {
-    // Mảng lưu các nước đi khả thi
     struct Step { int r1, c1, r2, c2; };
     std::vector<Step> possibleMoves;
 
@@ -243,58 +242,94 @@ void Mummy::move(const Map& map, const Player& player) {
 }
 
 void Mummy::update(float dt) {
-    // 1. Xử lý thời gian nghỉ (Pause)
+    // 1. Xử lý Pause
     if (m_pauseTimer > 0.f) {
         m_pauseTimer -= dt;
+        // Reset về dáng đứng khi pause
+        m_currentFrame = 0;
         return;
     }
 
-    // 2. Tự động lấy bước tiếp theo từ hàng đợi (nếu đang đứng yên)
+    // 2. Lấy bước đi từ hàng đợi
     if (!m_isMoving && !m_pathQueue.empty()) {
         m_targetPos = m_pathQueue.front();
         m_pathQueue.pop();
         m_isMoving = true;
     }
 
-    // 3. Logic trượt (Interpolation)
+    // 3. Logic di chuyển & Animation
     if (m_isMoving) {
         sf::Vector2f direction = m_targetPos - m_position;
         float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
         float step = m_moveSpeed * dt;
 
+        // --- A. TÍNH HƯỚNG (MỚI) ---
+        // Xác định hướng dựa trên vector di chuyển để chọn sprite đúng
+        if (std::abs(direction.x) > std::abs(direction.y)) {
+            // Đi ngang
+            if (direction.x > 0) m_currentDir = 2; // Right
+            else m_currentDir = 1; // Left
+        }
+        else {
+            // Đi dọc
+            if (direction.y > 0) m_currentDir = 0; // Down
+            else m_currentDir = 3; // Up
+        }
+
+        // --- B. DI CHUYỂN (GIỮ NGUYÊN) ---
         if (distance <= step) {
-            // Đã đến đích của bước này
             m_position = m_targetPos;
             m_isMoving = false;
-
-            // Nếu vẫn còn bước nữa trong hàng đợi -> Set thời gian khựng
             if (!m_pathQueue.empty()) {
-                m_pauseTimer = 0.15f; // Khựng 0.15s giữa 2 bước
+                m_pauseTimer = 0.15f;
             }
         }
         else {
-            // Chưa đến -> Nhích tiếp
             sf::Vector2f moveVec = (direction / distance) * step;
             m_position += moveVec;
         }
 
-        // Cập nhật Sprite
-        if (m_sprite.has_value()) {
-            m_sprite->setPosition(m_position);
+        // --- C. ANIMATION (GIỐNG PLAYER) ---
+        m_animTimer += dt;
+        if (m_animTimer >= 0.15f) { // Tốc độ đổi frame (0.15s)
+            m_animTimer = 0.f;
+            m_animStep++;
+
+            int stepCycle = m_animStep % 4;
+            // Chu kỳ đi bộ: Đứng -> Chân Trái -> Đứng -> Chân Phải
+            if (stepCycle == 0) m_currentFrame = 0;
+            else if (stepCycle == 1) m_currentFrame = 1;
+            else if (stepCycle == 2) m_currentFrame = 0;
+            else if (stepCycle == 3) m_currentFrame = 2;
         }
+    }
+    else {
+        // Nếu đứng yên thì reset về frame 0
+        m_currentFrame = 0;
+        m_animStep = 0;
+    }
+
+    // Cập nhật vị trí Sprite cũ (nếu bạn vẫn dùng m_sprite làm biến tạm)
+    // Nhưng hàm render ở dưới sẽ dùng m_textures nên dòng này không quá quan trọng
+    if (m_sprite.has_value()) {
+        m_sprite->setPosition(m_position);
     }
 }
 
 void Mummy::render(sf::RenderWindow& window, float scaleRatio) {
-    if (!m_sprite.has_value()) return;
+    // Kiểm tra an toàn: Đảm bảo texture đã load đủ
+    if (m_textures.size() <= m_currentDir || m_textures[m_currentDir].size() <= m_currentFrame) return;
 
-    // Lấy kích thước Texture gốc
-    sf::Vector2u texSize = m_texture.getSize();
+    // Tạo sprite từ frame hiện tại
+    sf::Sprite sprite(m_textures[m_currentDir][m_currentFrame]);
 
-    // Set Origin ở giữa chân để căn vị trí cho chuẩn
-    m_sprite->setOrigin({ texSize.x / 2.0f, texSize.y - 10.0f });
-    m_sprite->setScale({ scaleRatio, scaleRatio });
-    m_sprite->setPosition(m_position);
+    sprite.setPosition(m_position);
 
-    window.draw(*m_sprite);
+    // Căn Origin: Giữa chân
+    sf::FloatRect bounds = sprite.getGlobalBounds();
+    sprite.setOrigin({ bounds.size.x / 2.0f, bounds.size.y - 10.0f });
+
+    sprite.setScale({ scaleRatio, scaleRatio });
+
+    window.draw(sprite);
 }

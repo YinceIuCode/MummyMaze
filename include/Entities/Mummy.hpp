@@ -1,18 +1,12 @@
 ﻿#pragma once
-
-// --- STANDARD LIBRARIES ---
 #include <vector>
 #include <cmath>
 #include <cstdlib>
 #include <queue>
 #include <string>
-#include <optional> // Bắt buộc cho std::optional
-
-// --- SFML ---
+#include <optional> 
 #include <SFML/Graphics.hpp>
 
-// --- FORWARD DECLARATIONS ---
-// (Giúp compile nhanh hơn, tránh include vòng tròn)
 class Map;
 class Player;
 
@@ -24,13 +18,9 @@ enum class MummyAlgorithm {
 
 class Mummy {
 public:
-    // ==============================
-    // 1. CONSTRUCTOR & SETUP
-    // ==============================
     Mummy();
 
     // Load ảnh và theme
-    void initTexture(const std::string& texturePath);
     void loadTheme(const std::string& themeName);
 
     // Đặt vị trí xuất hiện (Reset trạng thái)
@@ -39,9 +29,6 @@ public:
     // Cài đặt chế độ (Thông minh / Ngẫu nhiên)
     void setMode(MummyAlgorithm m) { mode = m; }
 
-    // ==============================
-    // 2. MAIN GAME LOOP
-    // ==============================
     // Logic tìm đường (được gọi theo lượt)
     void move(const Map& map, const Player& player);
 
@@ -51,42 +38,36 @@ public:
     // Vẽ lên màn hình
     void render(sf::RenderWindow& window, float scaleRatio);
 
-    // ==============================
-    // 3. GETTERS (Lấy thông tin)
-    // ==============================
     int getR() const { return r; }
     int getC() const { return c; }
 
-    // Cần hàm này để Map tính toán vẽ chồng hình (Z-Order)
     sf::Vector2f getPosition() const { return m_position; }
 
-    // Kiểm tra xem Mummy có đang bận không (đang trượt hoặc đang khựng lại)
     bool isMoving() const {
         return m_isMoving || !m_pathQueue.empty() || m_pauseTimer > 0.f;
     }
 
 private:
-    // ==============================
-    // 4. PRIVATE VARIABLES
-    // ==============================
     // --- Logic Game ---
-    int r, c;                           // Tọa độ lưới (Grid)
-    MummyAlgorithm mode;                // Chế độ hiện tại
-    std::queue<sf::Vector2f> m_pathQueue; // Hàng đợi các bước đi
-    float m_pauseTimer;                 // Bộ đếm thời gian nghỉ
+    int r, c;                           
+    MummyAlgorithm mode;                
+    std::queue<sf::Vector2f> m_pathQueue; 
+    float m_pauseTimer;                 
 
     // --- Đồ họa & Chuyển động ---
-    sf::Texture m_texture;
-    std::optional<sf::Sprite> m_sprite; // Sprite có thể rỗng lúc đầu
+    std::optional<sf::Sprite> m_sprite; 
+    std::vector<std::vector<sf::Texture>> m_textures; 
+    int m_currentDir;   
+    int m_currentFrame; 
 
-    sf::Vector2f m_position;            // Vị trí vẽ hiện tại (Pixel)
-    sf::Vector2f m_targetPos;           // Vị trí đang trượt tới (Pixel)
-    bool m_isMoving;                    // Cờ đánh dấu đang trượt
-    float m_moveSpeed;                  // Tốc độ trượt
+    float m_animTimer;  
+    int m_animStep;
 
-    // ==============================
-    // 5. HELPER FUNCTIONS
-    // ==============================
+    sf::Vector2f m_position;
+    sf::Vector2f m_targetPos;
+    bool m_isMoving;
+    float m_moveSpeed;
+
     // Các thuật toán tìm đường cụ thể
     void moveOnceGreedy(const Map& map, int pR, int pC);
     void moveOnceRandom(const Map& map);

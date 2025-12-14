@@ -169,7 +169,6 @@ void GameState::initVariables()
     // Nút Exit để góc trên cùng bên phải (nhỏ gọn)
     m_btnBack = std::make_unique<Button>(m_txBack, 1220.f, 50.f, scale);
 
-    // ... (Phần load Map logic giữ nguyên) ...
     std::ifstream fileCount(m_currentMapPath);
     int lineCount = 0;
     std::string tempLine;
@@ -252,6 +251,8 @@ void GameState::initVariables()
 
     // Nút MENU (Về sảnh chính) - Dùng icon Back/Exit
     m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx + 80.f, cy + 80.f, 1.5f);
+
+	m_btnNext = std::make_unique<Button>(m_txNext, cx, cy + 160.f, 1.5f);
 }
 
 void GameState::update(float dt) {

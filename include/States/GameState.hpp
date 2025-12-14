@@ -31,7 +31,7 @@ private:
     std::unique_ptr<Button> m_btnSave;
     std::unique_ptr<Button> m_btnBack; // Nút Exit/Back
 
-    sf::Texture m_txUndo, m_txRedo, m_txReset, m_txSave, m_txBack, m_txYes, m_txNo;
+    sf::Texture m_txUndo, m_txRedo, m_txReset, m_txSave, m_txBack, m_txYes, m_txNo, m_txNext;
 
     float m_totalTime = 0.0f; // Để nút có hiệu ứng thở
     bool m_isWaitingForMouseRelease = true; // Chặn click thừa
@@ -51,6 +51,7 @@ private:
     // Nút cho màn hình kết thúc
     std::unique_ptr<Button> m_btnRetry;   // Nút chơi lại
     std::unique_ptr<Button> m_btnMenuEnd;
+    std::unique_ptr<Button> m_btnNext;
 
     void saveGame();
     std::string loadGameData(int& pGridX, int& pGridY, int& mGridX, int& mGridY);

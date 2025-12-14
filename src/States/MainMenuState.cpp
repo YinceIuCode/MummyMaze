@@ -109,7 +109,7 @@ void MainMenuState::updateButtons() {
     m_btnHowToPlay->update(mousePos, isMousePressed, m_totalTime);
     m_btnExit->update(mousePos, isMousePressed, m_totalTime);
 
-    // 3. XỬ LÝ CLICK (Chỉ viết 1 lần duy nhất ở đây)
+    // 3. XỬ LÝ CLICK
     static bool isHandled = false;
 
     if (isMousePressed && !isHandled) {

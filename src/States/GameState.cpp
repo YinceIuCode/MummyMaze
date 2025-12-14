@@ -5,20 +5,26 @@
 #include <filesystem>
 
 void clearSaveData() {
-    std::string folderPath = "assets/mazes/";
+    std::string filePath = "assets/mazes/mazesave.txt";
 
-    if (std::filesystem::exists(folderPath)) {
-        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".txt") {
-                try {
-                    std::filesystem::remove(entry.path());
-                    std::cout << "Deleted: " << entry.path() << "\n";
-                }
-                catch (const std::filesystem::filesystem_error& e) {
-                    std::cerr << "Error deleting: " << e.what() << "\n";
-                }
+    try {
+        // Kiểm tra xem file có tồn tại không
+        if (std::filesystem::exists(filePath)) {
+            // Hàm remove trả về true nếu xóa thành công
+            if (std::filesystem::remove(filePath)) {
+                std::cout << "Deleted save file successfully: " << filePath << "\n";
+            }
+            else {
+                std::cerr << "Failed to delete file.\n";
             }
         }
+        else {
+            // Không có file để xóa (trường hợp chưa save bao giờ)
+            std::cout << "No save file found to delete.\n";
+        }
+    }
+    catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error handling file: " << e.what() << "\n";
     }
 }
 
@@ -139,121 +145,239 @@ std::string GameState::loadGameData(int& pGridX, int& pGridY, int& mGridX, int& 
 
 void GameState::initVariables()
 {
-    // 1. Đọc file để xem Map to bao nhiêu
+    // Load Texture
+    if (!m_txUndo.loadFromFile("assets/textures/Menu/btn_undo.png")) std::cerr << "Err Undo\n";
+    if (!m_txRedo.loadFromFile("assets/textures/Menu/btn_redo.png")) std::cerr << "Err Redo\n";
+    if (!m_txReset.loadFromFile("assets/textures/Menu/btn_reset.png")) std::cerr << "Err Reset\n";
+    if (!m_txBack.loadFromFile("assets/textures/Menu/btn_back.png")) std::cerr << "Err Back\n";
+    if (!m_txSave.loadFromFile("assets/textures/Menu/btn_save.png")) std::cerr << "Err Save\n";
+	if (!m_txYes.loadFromFile("assets/textures/Menu/icon_tick.png")) std::cerr << "Err Yes\n";
+	if (!m_txNo.loadFromFile("assets/textures/Menu/icon_cross.png")) std::cerr << "Err No\n";
+
+    // --- CÀI ĐẶT VỊ TRÍ NÚT (DÀN HÀNG NGANG Ở DƯỚI) ---
+    float startX = 100.f;  // Bắt đầu từ bên trái
+    float startY = 200.f;  // Độ cao: Thấp xuống dưới chân màn hình
+    float gap = 120.f;     // Khoảng cách giữa các nút
+    float scale = 2.0f;    // Scale nhỏ lại (1.0) cho vừa vặn, không dùng 3.0
+
+    // Khởi tạo Button bằng make_unique (Khớp với constructor file cũ của bạn)
+    m_btnUndo = std::make_unique<Button>(m_txUndo, startX, startY, scale);
+    m_btnReset = std::make_unique<Button>(m_txReset, startX, startY + gap, scale);
+    m_btnSave = std::make_unique<Button>(m_txSave, startX, startY + gap * 2, scale);
+    m_btnRedo = std::make_unique<Button>(m_txRedo, startX, startY + gap * 3, scale);
+
+    // Nút Exit để góc trên cùng bên phải (nhỏ gọn)
+    m_btnBack = std::make_unique<Button>(m_txBack, 1220.f, 50.f, scale);
+
+    // ... (Phần load Map logic giữ nguyên) ...
     std::ifstream fileCount(m_currentMapPath);
     int lineCount = 0;
     std::string tempLine;
     if (fileCount.is_open()) {
-        while (std::getline(fileCount, tempLine)) {
-            // Chỉ đếm dòng có dữ liệu
-            if (tempLine.length() > 1) lineCount++;
-        }
+        while (std::getline(fileCount, tempLine)) if (tempLine.length() > 1) lineCount++;
         fileCount.close();
     }
+    if (lineCount < 3) lineCount = 13;
+    int logicalSize = (lineCount - 1) / 2;
+    m_currentMapSize = logicalSize;
 
-    if (lineCount < 3) lineCount = 13; 
-
-    int logicalSize = (lineCount - 1) / 2; 
-    m_currentMapSize = logicalSize; 
-
-    // 2. Tính TileSize dựa trên LOGICAL SIZE
     float maxMapHeight = 720.0f;
     float tileSize = maxMapHeight / logicalSize;
     if (tileSize > 120.0f) tileSize = 120.0f;
     m_map.setTileSize(tileSize);
 
-    // 3. Load hình ảnh (Theme)
-	std::string themePath;
-    if (GameData::currentTheme == 0) {
-        themePath = "Playmap"; // Ví dụ đường dẫn theme 1
-    }
-    else if (GameData::currentTheme == 1) {
-        themePath = "Nobi"; // Ví dụ đường dẫn theme 2
-    }
-    else {
-        // Fallback mặc định nếu theme bị lỗi
-        themePath = "Playmap";
-    }
+    std::string themePath = (GameData::currentTheme == 1) ? "Nobi" : "Playmap";
     m_map.loadTheme(themePath);
     m_player.loadTheme(themePath);
     m_mummy.loadTheme(themePath);
 
-    // 4. Đặt vị trí Map ra giữa màn hình
-
-    float realMapWidth = logicalSize * tileSize; // Ví dụ 6 * 120 = 720
-    float offsetX = (1290.f - realMapWidth) / 2.f;
-    float offsetY = (720.f - realMapWidth) / 2.f + 60.f;
+    float realMapWidth = logicalSize * tileSize;
     m_map.setPosition(1290.f / 2.f - 300.f, 210.f);
 
-    // 5. Load Map & Sinh nhân vật
     m_map.loadMap(m_currentMapPath, m_player, m_mummy);
-
     time_machine.push_state(m_player, m_mummy);
-
     m_turn = TurnState::PlayerInput;
+
+    // --- THÊM PHẦN KHỞI TẠO POPUP ---
+    m_showExitConfirm = false;
+
+    // 1. Lớp đen mờ (Dim background)
+    m_darkLayer.setSize(sf::Vector2f(1290.f, 720.f)); // Kích thước bằng cửa sổ game
+    m_darkLayer.setFillColor(sf::Color(0, 0, 0, 150)); // Màu đen, Alpha 150 (trong suốt)
+
+    // 2. Bảng thông báo (Nền)
+    m_popupPanel.setSize(sf::Vector2f(500.f, 300.f));
+    m_popupPanel.setFillColor(sf::Color(50, 40, 30)); // Màu nâu đất
+    m_popupPanel.setOutlineThickness(4.f);
+    m_popupPanel.setOutlineColor(sf::Color(200, 180, 50)); // Viền vàng
+    m_popupPanel.setOrigin({ 250.f, 150.f });
+    m_popupPanel.setPosition({ 1290.f / 2.f, 720.f / 2.f }); // Căn giữa màn hình
+    static sf::Font font;
+    if (!font.openFromFile("assets/fonts/Akashi.ttf")) {
+		std::cerr << "Error loading font for popup text!\n";
+    }
+
+    m_popupText.emplace(font, "Save Game Before Exit?", 30);
+    m_popupText->setFillColor(sf::Color::White);
+
+    sf::FloatRect textRect = m_popupText->getLocalBounds();
+    m_popupText->setOrigin({ textRect.size.x / 2.0f, textRect.size.y / 2.0f });
+    m_popupText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 50.f }); // Cao hơn tâm một chút
+
+    // 4. Hai nút Yes / No
+
+    float centerX = 1290.f / 2.f;
+    float centerY = 720.f / 2.f;
+
+    // Nút YES (Bên trái) - Tạm dùng Texture nút Play (m_txUndo cũ của bạn hình như là Play)
+    m_btnYes = std::make_unique<Button>(m_txYes, centerX - 100.f, centerY + 60.f, 1.5f);
+
+    // Nút NO (Bên phải) - Tạm dùng Texture nút Exit (m_txSave)
+    m_btnNo = std::make_unique<Button>(m_txNo, centerX + 100.f, centerY + 60.f, 1.5f);
+
+    m_endGameStatus = 0; // Mặc định là đang chơi (0)
+
+    // 1. Cài đặt chữ Win/Lose
+    m_endGameText.emplace(font, "", 30);
+    m_endGameText->setStyle(sf::Text::Bold);
+    m_endGameText->setOutlineThickness(3.f);
+    m_endGameText->setOutlineColor(sf::Color::Black);
+
+    // 2. Khởi tạo nút
+    float cx = 1290.f / 2.f;
+    float cy = 720.f / 2.f;
+
+    // Nút RETRY (Chơi lại màn này) - Dùng icon Reset
+    m_btnRetry = std::make_unique<Button>(m_txReset, cx - 80.f, cy + 80.f, 1.5f);
+
+    // Nút MENU (Về sảnh chính) - Dùng icon Back/Exit
+    m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx + 80.f, cy + 80.f, 1.5f);
 }
 
 void GameState::update(float dt) {
+    m_totalTime += dt;
+    sf::Vector2f mousePos = m_window->mapPixelToCoords(sf::Mouse::getPosition(*m_window));
+    bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+
+    // Chặn click thừa
+    if (isMousePressed && m_isWaitingForMouseRelease) return;
+    if (!isMousePressed) m_isWaitingForMouseRelease = false;
+
+    if (m_endGameStatus != 0) {
+        // Nếu thắng hoặc thua -> Chỉ update 2 nút Retry và Menu
+        m_btnRetry->update(mousePos, isMousePressed, m_totalTime);
+        m_btnMenuEnd->update(mousePos, isMousePressed, m_totalTime);
+
+        // -- Xử lý bấm RETRY --
+        if (m_btnRetry->isClicked()) {
+            // Reset lại map hiện tại
+            m_map.loadMap(m_currentMapPath, m_player, m_mummy);
+            clearSaveData(); // Xóa file save cũ cho công bằng
+            m_endGameStatus = 0; // Trở về trạng thái đang chơi
+            m_turn = TurnState::PlayerInput; // Reset lượt
+            sf::sleep(sf::milliseconds(200));
+        }
+
+        // -- Xử lý bấm MENU --
+        if (m_btnMenuEnd->isClicked()) {
+            clearSaveData();
+            m_states->pop(); // Về Main Menu
+        }
+        return; // <--- DỪNG UPDATE GAME
+    }
+
+    // --- LOGIC MỚI: KIỂM TRA POPUP ---
+    if (m_showExitConfirm) {
+
+        m_btnYes->update(mousePos, isMousePressed, m_totalTime);
+        m_btnNo->update(mousePos, isMousePressed, m_totalTime);
+
+        // Xử lý click YES -> Lưu -> Thoát
+        if (m_btnYes->isClicked()) {
+            saveGame();
+            sf::sleep(sf::milliseconds(200));
+            m_states->pop(); // Thoát ra menu
+            return;
+        }
+
+        // Xử lý click NO -> Không lưu -> Thoát luôn
+        if (m_btnNo->isClicked()) {
+            sf::sleep(sf::milliseconds(200));
+            m_states->pop(); // Thoát ra menu
+            return;
+        }
+
+        // Xử lý nếu bấm ESC lần nữa -> Hủy thoát (Đóng popup)
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) {
+            m_showExitConfirm = false; // Tắt bảng đi, chơi tiếp
+            m_isWaitingForMouseRelease = true; // Chặn click nhầm
+            sf::sleep(sf::milliseconds(200));
+        }
+
+        return; // <--- RETURN NGAY, KHÔNG CHẠY LOGIC GAME BÊN DƯỚI
+    }
+
     m_player.update(dt);
     m_mummy.update(dt);
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)) {
-        m_states->pop();
-        sf::sleep(sf::milliseconds(200));
-        return;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)) { // Ví dụ phím P để Pause/Save
-        saveGame();
-        sf::sleep(sf::milliseconds(200));
-        m_states->pop();
-        return;
-    }
+    // --- GỌI HÀM UPDATE NÚT (KHỚP VỚI FILE CŨ) ---
+    if (m_btnUndo)  m_btnUndo->update(mousePos, isMousePressed, m_totalTime);
+    if (m_btnRedo)  m_btnRedo->update(mousePos, isMousePressed, m_totalTime);
+    if (m_btnReset) m_btnReset->update(mousePos, isMousePressed, m_totalTime);
+    if (m_btnSave)  m_btnSave->update(mousePos, isMousePressed, m_totalTime);
+    if (m_btnBack)  m_btnBack->update(mousePos, isMousePressed, m_totalTime);
 
     bool isPressingKey = false;
-    // 3. MÁY TRẠNG THÁI (TURN MACHINE) - Logic theo lượt
 
+    // Helper lambda lấy tọa độ grid
     auto getPlayerGrid = [&]() -> sf::Vector2i {
         float tileSize = m_map.getTileSize();
         sf::Vector2f mapPos = m_map.getPosition();
         sf::Vector2f pPos = m_player.getPosition();
         float offset = m_map.getDynamicOffset();
-
-        // Tính tọa độ tương đối
         float relativeX = pPos.x - mapPos.x + offset + tileSize / 2;
         float relativeY = pPos.y - mapPos.y + offset + tileSize / 2;
-
         int c = static_cast<int>(std::floor(relativeX / tileSize));
         int r = static_cast<int>(std::floor(relativeY / tileSize));
-
         return { c, r };
         };
 
     switch (m_turn)
     {
-        // --- GIAI ĐOẠN 1: CHỜ NGƯỜI CHƠI BẤM PHÍM ---
     case TurnState::PlayerInput:
     {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U)) {
+        // --- XỬ LÝ CLICK NÚT ---
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U) || (m_btnUndo && m_btnUndo->isClicked())) {
             auto old_state = time_machine.undo_state(m_player, m_mummy);
             m_player = old_state.first;
             m_mummy = old_state.second;
-
             sf::sleep(sf::milliseconds(200));
             return;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I) || (m_btnRedo && m_btnRedo->isClicked())) {
             auto future_state = time_machine.redo_state();
             m_player = future_state.first;
             m_mummy = future_state.second;
             sf::sleep(sf::milliseconds(200));
             return;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R)) {
-			m_map.loadMap("assets/mazes/maze1.txt", m_player, m_mummy);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R) || (m_btnReset && m_btnReset->isClicked())) {
+            m_map.loadMap(m_currentMapPath, m_player, m_mummy);
             sf::sleep(sf::milliseconds(200));
             return;
-		}
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P) || (m_btnSave && m_btnSave->isClicked())) {
+            saveGame();
+            sf::sleep(sf::milliseconds(200));
+            return;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape) || (m_btnBack && m_btnBack->isClicked())) {
+            m_showExitConfirm = true;
+            m_isWaitingForMouseRelease = true; 
+            return;
+        }
 
+        // Logic di chuyển
         isPressingKey = (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) ||
             sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) ||
             sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) ||
@@ -266,74 +390,86 @@ void GameState::update(float dt) {
         if (isPressingKey && !m_player.isMoving()) {
             time_machine.push_state(m_player, m_mummy);
             m_player.processInput(m_map);
-            if (m_player.isMoving())
-            {
-                m_turn = TurnState::PlayerMoving;
-            }
-            else {
-                time_machine.undo_state(m_player, m_mummy);
-            }
+            if (m_player.isMoving()) m_turn = TurnState::PlayerMoving;
+            else time_machine.undo_state(m_player, m_mummy);
         }
         break;
     }
     case TurnState::PlayerMoving:
         if (!m_player.isMoving()) {
             sf::Vector2i pGrid = getPlayerGrid();
-
-            // --- KIỂM TRA THẮNG (Player ra ngoài map) ---
             int mapW = m_map.getWidth();
             int mapH = m_map.getHeight();
-            std::cerr << mapW << " " << mapH << "\n";
-            std::cerr << pGrid.x << " " << pGrid.y << "\n";
 
-            // Nếu tọa độ nhỏ hơn 0 hoặc lớn hơn kích thước map -> Đã thoát thành công
+            // --- LOGIC THẮNG ---
+            // Nếu Player ra khỏi biên -> WIN
             if (pGrid.x < 0 || pGrid.x >= mapW || pGrid.y < 0 || pGrid.y >= mapH) {
-                std::cout << ">>> VICTORY! ESCAPED! <<<\n";
-                clearSaveData();
-                sf::sleep(sf::milliseconds(500));
-                m_states->pop(); // Quay về Menu
+                std::cout << ">>> VICTORY! <<<\n"; // Debug chơi thôi
+
+                // CẬP NHẬT TRẠNG THÁI WIN
+                m_endGameStatus = 1;
+                m_endGameText->setString("VICTORY!");
+                m_endGameText->setFillColor(sf::Color::Yellow);
+
+                // Căn giữa chữ
+                sf::FloatRect b = m_endGameText->getLocalBounds();
+                m_endGameText->setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
+                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+
+                clearSaveData(); // Thắng rồi thì xóa save
                 return;
             }
-
-            // Nếu chưa thắng thì chuyển lượt cho Mummy
             m_turn = TurnState::MummyThinking;
         }
         break;
 
     case TurnState::MummyThinking:
-        m_mummy.move(m_map, m_player);
-        // Logic kiểm tra nếu Mummy bắt được ngay khi tính toán (ít xảy ra)
+        m_mummy.move(m_map, m_player); // 1. Tính toán nước đi
+
+        // 2. NẾU MUMMY BẮT ĐẦU DI CHUYỂN -> CHUYỂN TRẠNG THÁI NGAY
         if (m_mummy.isMoving()) {
-            m_turn = TurnState::MummyMoving;
+            m_turn = TurnState::MummyMoving; // <--- THÊM DÒNG NÀY ĐỂ NÓ KHÔNG TÍNH TOÁN NỮA
         }
         else {
-            // Mummy đứng yên, check va chạm luôn
+            // 3. Nếu Mummy không cần đi (đứng im hoặc bị kẹt)
             sf::Vector2i pGrid = getPlayerGrid();
+
+            // Check xem có bắt được Player ngay tại chỗ không
             if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
-                std::cout << ">>> DEFEAT! <<<\n";
+                // --- LOGIC THUA (Copy từ code cũ) ---
+                m_endGameStatus = 2;
+                m_endGameText->setString("DEFEAT!");
+                m_endGameText->setFillColor(sf::Color::Red);
+
+                sf::FloatRect b = m_endGameText->getLocalBounds();
+                m_endGameText->setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
+                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+
                 clearSaveData();
-                sf::sleep(sf::milliseconds(500));
-                m_states->pop();
                 return;
             }
+
+            // Nếu không bắt được -> Hết lượt, chuyển về lượt Player
             m_turn = TurnState::PlayerInput;
         }
         break;
 
     case TurnState::MummyMoving:
         if (!m_mummy.isMoving()) {
-            // --- KIỂM TRA THUA (Mummy bắt được) ---
             sf::Vector2i pGrid = getPlayerGrid();
-
-            // So sánh tọa độ Mummy (R, C) với Player (Y, X)
+            // --- LOGIC THUA (2) ---
             if (m_mummy.getR() == pGrid.y && m_mummy.getC() == pGrid.x) {
-                std::cout << ">>> DEFEAT! MUMMY CAUGHT YOU <<<\n";
-				clearSaveData();
-                sf::sleep(sf::milliseconds(500));
-                m_states->pop(); // Quay về Menu
+                m_endGameStatus = 2;
+                m_endGameText->setString("YOU DIED!");
+                m_endGameText->setFillColor(sf::Color::Red);
+
+                sf::FloatRect b = m_endGameText->getLocalBounds();
+                m_endGameText->setOrigin({b.size.x / 2.f, b.size.y / 2.f });
+                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+
+                clearSaveData();
                 return;
             }
-
             m_turn = TurnState::PlayerInput;
         }
         break;
@@ -345,4 +481,27 @@ void GameState::render(sf::RenderWindow& window)
     // Chỉ cần gọi hàm này.
     // Bên trong Map::draw đã có logic vẽ Player và Mummy theo chiều sâu (Z-Order)
     m_map.draw(window, m_player, m_mummy);
+    if (m_btnUndo)  m_btnUndo->render(window);
+    if (m_btnRedo)  m_btnRedo->render(window);
+    if (m_btnReset) m_btnReset->render(window);
+    if (m_btnSave)  m_btnSave->render(window);
+    if (m_btnBack)  m_btnBack->render(window);
+    if (m_showExitConfirm) {
+        window.draw(m_darkLayer);  // Làm tối màn hình game
+        window.draw(m_popupPanel); // Vẽ cái bảng nền
+        window.draw(*m_popupText);  // Vẽ chữ hỏi
+
+        m_btnYes->render(window);  // Vẽ nút Yes
+        m_btnNo->render(window);   // Vẽ nút No
+    }
+    if (m_endGameStatus != 0) {
+        // Tái sử dụng lớp đen mờ và bảng popup cho đẹp
+        window.draw(m_darkLayer);
+        window.draw(m_popupPanel);
+
+        window.draw(*m_endGameText); // Chữ VICTORY hoặc DEFEAT
+
+        m_btnRetry->render(window);
+        m_btnMenuEnd->render(window);
+    }
 }

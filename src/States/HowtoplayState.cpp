@@ -1,5 +1,5 @@
 ﻿#include "States/HowToPlayState.hpp"
-#include "Core/GameData.hpp" // Để check mute khi bấm nút Back
+#include "Core/GameData.hpp"
 #include <iostream>
 
 HowToPlayState::HowToPlayState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)
@@ -95,12 +95,12 @@ void HowToPlayState::updateInput(float dt) {
                     if (snd.getStatus() != sf::Sound::Status::Playing) snd.play();
                 }
 
-                sf::sleep(sf::milliseconds(150)); // Delay nhẹ
-                m_states->pop(); // Quay về menu
+                sf::sleep(sf::milliseconds(150));
+                m_states->pop();
             }
         }
         else {
-            m_btnBack->setFillColor(sf::Color::White); // Normal
+            m_btnBack->setFillColor(sf::Color::White);
         }
     }
 }

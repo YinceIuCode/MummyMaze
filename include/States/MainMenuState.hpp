@@ -33,12 +33,12 @@ private:
 
     // --- STATE DATA ---
     float m_totalTime = 0.f;
-    bool m_isWaitingForMouseRelease = true; // Chống click nhầm từ màn trước
+    bool m_isWaitingForMouseRelease = true;
 
     // --- FUNCTIONS ---
     void initVariables();
     void initGui();
-    void updateButtons(); // Hàm này giờ sẽ gọn hơn nhiều
+    void updateButtons();
 
 public:
     MainMenuState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

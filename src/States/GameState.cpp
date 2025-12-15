@@ -82,7 +82,7 @@ void GameState::generateNewMaze(int mapsize)
     do
     {
         maze.generate();
-    } while (maze.can_solve_the_maze() > 2); // Đảm bảo map giải được và đủ khó
+    } while (maze.can_solve_the_maze() > 2);
     maze.print_maze();
 }
 
@@ -153,6 +153,7 @@ void GameState::initVariables()
     if (!m_txSave.loadFromFile("assets/textures/Menu/btn_save.png")) std::cerr << "Err Save\n";
 	if (!m_txYes.loadFromFile("assets/textures/Menu/icon_tick.png")) std::cerr << "Err Yes\n";
 	if (!m_txNo.loadFromFile("assets/textures/Menu/icon_cross.png")) std::cerr << "Err No\n";
+    if (!m_txNext.loadFromFile("assets/textures/Menu/btn_next.png")) std::cerr << "Err Next\n";
 
     // --- CÀI ĐẶT VỊ TRÍ NÚT (DÀN HÀNG NGANG Ở DƯỚI) ---
     float startX = 100.f;  // Bắt đầu từ bên trái
@@ -165,8 +166,6 @@ void GameState::initVariables()
     m_btnReset = std::make_unique<Button>(m_txReset, startX, startY + gap, scale);
     m_btnSave = std::make_unique<Button>(m_txSave, startX, startY + gap * 2, scale);
     m_btnRedo = std::make_unique<Button>(m_txRedo, startX, startY + gap * 3, scale);
-
-    // Nút Exit để góc trên cùng bên phải (nhỏ gọn)
     m_btnBack = std::make_unique<Button>(m_txBack, 1220.f, 50.f, scale);
 
     std::ifstream fileCount(m_currentMapPath);
@@ -201,32 +200,32 @@ void GameState::initVariables()
     m_showExitConfirm = false;
 
     // 1. Lớp đen mờ (Dim background)
-    m_darkLayer.setSize(sf::Vector2f(1290.f, 720.f)); // Kích thước bằng cửa sổ game
+    m_darkLayer.setSize(sf::Vector2f(m_window->getSize().x, m_window->getSize().y)); // Kích thước bằng cửa sổ game
     m_darkLayer.setFillColor(sf::Color(0, 0, 0, 150)); // Màu đen, Alpha 150 (trong suốt)
 
     // 2. Bảng thông báo (Nền)
-    m_popupPanel.setSize(sf::Vector2f(500.f, 300.f));
+    m_popupPanel.setSize(sf::Vector2f(800.f, 300.f));
     m_popupPanel.setFillColor(sf::Color(50, 40, 30)); // Màu nâu đất
     m_popupPanel.setOutlineThickness(4.f);
     m_popupPanel.setOutlineColor(sf::Color(200, 180, 50)); // Viền vàng
-    m_popupPanel.setOrigin({ 250.f, 150.f });
-    m_popupPanel.setPosition({ 1290.f / 2.f, 720.f / 2.f }); // Căn giữa màn hình
+    m_popupPanel.setOrigin({ 400.f, 150.f });
+    m_popupPanel.setPosition({ m_window->getSize().x / 2.f, m_window->getSize().y / 2.f}); // Căn giữa màn hình
     static sf::Font font;
     if (!font.openFromFile("assets/fonts/Akashi.ttf")) {
 		std::cerr << "Error loading font for popup text!\n";
     }
 
-    m_popupText.emplace(font, "Save Game Before Exit?", 30);
+    m_popupText.emplace(font, "Save Game Before Exit?", 50);
     m_popupText->setFillColor(sf::Color::White);
 
     sf::FloatRect textRect = m_popupText->getLocalBounds();
     m_popupText->setOrigin({ textRect.size.x / 2.0f, textRect.size.y / 2.0f });
-    m_popupText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 50.f }); // Cao hơn tâm một chút
+    m_popupText->setPosition({ m_window->getSize().x / 2.f, m_window->getSize().y / 2.f - 50.f }); // Cao hơn tâm một chút
 
     // 4. Hai nút Yes / No
 
-    float centerX = 1290.f / 2.f;
-    float centerY = 720.f / 2.f;
+    float centerX = m_window->getSize().x / 2.f;
+    float centerY = m_window->getSize().y / 2.f;
 
     // Nút YES (Bên trái) - Tạm dùng Texture nút Play (m_txUndo cũ của bạn hình như là Play)
     m_btnYes = std::make_unique<Button>(m_txYes, centerX - 100.f, centerY + 60.f, 1.5f);
@@ -237,22 +236,22 @@ void GameState::initVariables()
     m_endGameStatus = 0; // Mặc định là đang chơi (0)
 
     // 1. Cài đặt chữ Win/Lose
-    m_endGameText.emplace(font, "", 30);
+    m_endGameText.emplace(font, "", 100);
     m_endGameText->setStyle(sf::Text::Bold);
     m_endGameText->setOutlineThickness(3.f);
     m_endGameText->setOutlineColor(sf::Color::Black);
 
     // 2. Khởi tạo nút
-    float cx = 1290.f / 2.f;
-    float cy = 720.f / 2.f;
+    float cx = m_window->getSize().x / 2.f;
+    float cy = m_window->getSize().y / 2.f;
 
     // Nút RETRY (Chơi lại màn này) - Dùng icon Reset
     m_btnRetry = std::make_unique<Button>(m_txReset, cx - 80.f, cy + 80.f, 1.5f);
 
     // Nút MENU (Về sảnh chính) - Dùng icon Back/Exit
-    m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx + 80.f, cy + 80.f, 1.5f);
+    m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx, cy + 80.f, 1.5f);
 
-	m_btnNext = std::make_unique<Button>(m_txNext, cx, cy + 160.f, 1.5f);
+	m_btnNext = std::make_unique<Button>(m_txNext, cx + 80.f, cy + 80.f, 1.5f);
 }
 
 void GameState::update(float dt) {
@@ -268,6 +267,7 @@ void GameState::update(float dt) {
         // Nếu thắng hoặc thua -> Chỉ update 2 nút Retry và Menu
         m_btnRetry->update(mousePos, isMousePressed, m_totalTime);
         m_btnMenuEnd->update(mousePos, isMousePressed, m_totalTime);
+		m_btnNext->update(mousePos, isMousePressed, m_totalTime);
 
         // -- Xử lý bấm RETRY --
         if (m_btnRetry->isClicked()) {
@@ -282,7 +282,20 @@ void GameState::update(float dt) {
         // -- Xử lý bấm MENU --
         if (m_btnMenuEnd->isClicked()) {
             clearSaveData();
-            m_states->pop(); // Về Main Menu
+            m_states->pop();
+            return;
+        }
+
+        if (m_btnNext->isClicked()) {
+            generate_maze gen(m_currentMapSize);
+            gen.generate();
+            gen.print_maze();
+
+            auto newGameState = std::make_unique<GameState>(m_window, m_states, "assets/mazes/maze1.txt", false);
+            auto statesStack = m_states;
+            statesStack->pop();
+
+            statesStack->push(std::move(newGameState));
         }
         return; // <--- DỪNG UPDATE GAME
     }
@@ -321,7 +334,7 @@ void GameState::update(float dt) {
     m_player.update(dt);
     m_mummy.update(dt);
 
-    // --- GỌI HÀM UPDATE NÚT (KHỚP VỚI FILE CŨ) ---
+    // --- GỌI HÀM UPDATE NÚT ---
     if (m_btnUndo)  m_btnUndo->update(mousePos, isMousePressed, m_totalTime);
     if (m_btnRedo)  m_btnRedo->update(mousePos, isMousePressed, m_totalTime);
     if (m_btnReset) m_btnReset->update(mousePos, isMousePressed, m_totalTime);
@@ -415,7 +428,7 @@ void GameState::update(float dt) {
                 // Căn giữa chữ
                 sf::FloatRect b = m_endGameText->getLocalBounds();
                 m_endGameText->setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
-                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+                m_endGameText->setPosition({ m_window->getSize().x / 2.f, m_window->getSize().y / 2.f - 50.f });
 
                 clearSaveData(); // Thắng rồi thì xóa save
                 return;
@@ -444,7 +457,7 @@ void GameState::update(float dt) {
 
                 sf::FloatRect b = m_endGameText->getLocalBounds();
                 m_endGameText->setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
-                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+                m_endGameText->setPosition({ m_window->getSize().x / 2.f, m_window->getSize().y / 2.f - 50.f });
 
                 clearSaveData();
                 return;
@@ -466,7 +479,7 @@ void GameState::update(float dt) {
 
                 sf::FloatRect b = m_endGameText->getLocalBounds();
                 m_endGameText->setOrigin({b.size.x / 2.f, b.size.y / 2.f });
-                m_endGameText->setPosition({ 1290.f / 2.f, 720.f / 2.f - 20.f });
+                m_endGameText->setPosition({ m_window->getSize().x / 2.f, m_window->getSize().y / 2.f - 50.f });
 
                 clearSaveData();
                 return;
@@ -504,5 +517,6 @@ void GameState::render(sf::RenderWindow& window)
 
         m_btnRetry->render(window);
         m_btnMenuEnd->render(window);
+		m_btnNext->render(window);
     }
 }

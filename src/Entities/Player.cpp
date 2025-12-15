@@ -8,8 +8,6 @@ const std::string DIR_NAMES[] = { "Down", "Left", "Right", "Up" };
 Player::Player() {
     m_tilePerSecond = 1.5f;
     m_position = { 0.f, 0.f };
-
-    // Mặc định load theme gốc để không bị lỗi texture rỗng
     m_targetPos = m_position;
     m_isMoving = false;
 
@@ -85,16 +83,14 @@ void Player::processInput(const Map& map) {
     bool hasInput = false;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {
-        // Kiểm tra tường phải và giới hạn map
         m_currentDir = Dir::Right;
-		std::cerr << currentCell->exitVariant << "\n";
+        std::cerr << currentCell->exitVariant << "\n";
         if (!currentCell->wallRight && (gridX < map.getWidth() - 1 || currentCell->exitVariant == 2)) {
             nextPos.x += tileSize;
             hasInput = true;
         }
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) {
-        // Kiểm tra tường trái
         m_currentDir = Dir::Left;
         std::cerr << currentCell->exitVariant << "\n";
         if (!currentCell->wallLeft && (gridX > 0 || currentCell->exitVariant == 1)) {
@@ -103,7 +99,6 @@ void Player::processInput(const Map& map) {
         }
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {
-        // Kiểm tra tường trên
         m_currentDir = Dir::Up;
         std::cerr << currentCell->exitVariant << "\n";
         if (!currentCell->wallTop && (gridY > 0 || currentCell->exitVariant == 0)) {
@@ -112,7 +107,6 @@ void Player::processInput(const Map& map) {
         }
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) {
-        // Kiểm tra tường dưới
         m_currentDir = Dir::Down;
         std::cerr << currentCell->exitVariant << "\n";
         if (!currentCell->wallBottom && (gridY < map.getHeight() - 1 || currentCell->exitVariant == 3)) {
@@ -134,36 +128,30 @@ void Player::update(float dt) {
         return;
     }
 
-    // Logic di chuyển mượt (Interpolation) từ code cũ
     sf::Vector2f direction = m_targetPos - m_position;
     float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-
-    // Quãng đường đi được trong frame này
     float step = m_movementSpeed * dt;
 
     if (distance <= step) {
-        // Đã tới nơi
         m_position = m_targetPos;
         m_isMoving = false;
     }
     else {
-        // Chưa tới nơi -> Nhích thêm 1 đoạn step
-        sf::Vector2f moveVec = (direction / distance) * step; // Normalize * step
+        sf::Vector2f moveVec = (direction / distance) * step;
         m_position += moveVec;
     }
 
     m_animTimer += dt;
     if (m_animTimer >= 0.15f) {
         m_animTimer = 0.f;
-
         m_animStep++;
 
         int stepCycle = m_animStep % 4;
 
-        if (stepCycle == 0) m_currentFrame = 0;      // Đứng (Trung gian)
-        else if (stepCycle == 1) m_currentFrame = 1; // Chân trái
-        else if (stepCycle == 2) m_currentFrame = 0; // Đứng (Trung gian)
-        else if (stepCycle == 3) m_currentFrame = 2; // Chân phải
+        if (stepCycle == 0) m_currentFrame = 0;
+        else if (stepCycle == 1) m_currentFrame = 1;
+        else if (stepCycle == 2) m_currentFrame = 0;
+        else if (stepCycle == 3) m_currentFrame = 2;
     }
 }
 
@@ -172,6 +160,6 @@ void Player::render(sf::RenderWindow& window, float scaleRatio) {
     sprite.setPosition(m_position);
     sf::FloatRect m_rect = sprite.getGlobalBounds();
     sprite.setOrigin({ m_rect.size.x / 2.0f, m_rect.size.y - 10.0f });
-    sprite.setScale({ scaleRatio, scaleRatio });    
+    sprite.setScale({ scaleRatio, scaleRatio });
     window.draw(sprite);
-} 
+}

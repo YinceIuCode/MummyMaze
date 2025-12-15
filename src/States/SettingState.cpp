@@ -1,7 +1,7 @@
 ﻿#include "States/SettingState.hpp"
 #include <iostream>
 #include <string>
-#include <cmath> // Dùng cho round()
+#include <cmath>
 
 SettingState::SettingState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)
     : State(window, states)
@@ -10,37 +10,36 @@ SettingState::SettingState(sf::RenderWindow* window, std::stack<std::unique_ptr<
     initGui();
 }
 
-SettingState::~SettingState() {}
+SettingState::~SettingState() {
+
+}
 
 void SettingState::initVariables() {
     if (!m_font.openFromFile("assets/fonts/Akashi.ttf")) std::cerr << "Err Font\n";
     if (m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) m_bgSprite.emplace(m_bgTexture);
 
     if (!m_buffClick.loadFromFile("assets/audios/click.wav")) {
-		std::cerr << "Err Click Sound Buffer\n";
+        std::cerr << "Err Click Sound Buffer\n";
     }
 
-    // --- LOAD ẢNH CỦA BẠN ---
-    // Nhớ thay đúng tên file bạn đang có
     if (!m_txBar.loadFromFile("assets/textures/Menu/slider_bar.png")) {
-		std::cerr << "Err Slider Bar Texture\n";
+        std::cerr << "Err Slider Bar Texture\n";
     }
     if (!m_txKnob.loadFromFile("assets/textures/Menu/slider_knob.png")) {
-		std::cerr << "Err Slider Knob Texture\n";
+        std::cerr << "Err Slider Knob Texture\n";
     }
     if (!m_txTick.loadFromFile("assets/textures/Menu/icon_tick.png")) {
-		std::cerr << "Err Tick Texture\n";
+        std::cerr << "Err Tick Texture\n";
     }
     if (!m_txCross.loadFromFile("assets/textures/Menu/icon_cross.png")) {
-		std::cerr << "Err Cross Texture\n";
+        std::cerr << "Err Cross Texture\n";
     }
 }
 
 void SettingState::initGui() {
-    float cx = m_window->getSize().x / 2.f; // Tâm màn hình
-    float scale = 1.5f; 
+    float cx = m_window->getSize().x / 2.f;
+    float scale = 1.5f;
 
-    // 1. Title & Back (Giữ nguyên hoặc chỉnh scale nếu thích)
     m_title.emplace(m_font, "SETTINGS", 80);
     sf::FloatRect tb = m_title->getLocalBounds();
     m_title->setOrigin({ tb.size.x / 2.f, 0 });
@@ -49,71 +48,51 @@ void SettingState::initGui() {
     m_btnBack.emplace(m_font, "BACK", 50);
     m_btnBack->setPosition({ 80.f, 60.f });
 
-    // ==================================================
-    // 2. SETUP SLIDER (NHẠC NỀN) - CĂN HÀNG NGANG
-    // ==================================================
-    float row1_Y = 300.f; // Độ cao dòng 1
+    float row1_Y = 300.f;
 
-    // A. Label (Chữ "MUSIC VOLUME")
     m_txtMusicLabel.emplace(m_font, "MUSIC VOLUME", 40);
-    m_txtMusicLabel->setScale({ scale, scale }); // Phóng to
+    m_txtMusicLabel->setScale({ scale, scale });
 
-    // Căn lề phải cho chữ (để đuôi chữ dính vào giữa màn hình)
     sf::FloatRect lbBounds = m_txtMusicLabel->getLocalBounds();
     m_txtMusicLabel->setOrigin({ lbBounds.size.x, lbBounds.size.y / 2.f });
-    m_txtMusicLabel->setPosition({ cx - 20.f, row1_Y }); // Nằm bên trái tâm một chút
+    m_txtMusicLabel->setPosition({ cx - 20.f, row1_Y });
 
-    // B. Thanh Bar Rỗng (Background)
     m_sprBar.emplace(m_txBar);
-    m_sprBar->setScale({ scale * 1.1f, scale * 1.1f }); // Phóng to
+    m_sprBar->setScale({ scale * 1.1f, scale * 1.1f });
     sf::FloatRect barBounds = m_sprBar->getLocalBounds();
-    m_sprBar->setOrigin({ 0, barBounds.size.y / 2.f }); // Gốc bên TRÁI
-    m_sprBar->setPosition({ cx + 20.f, row1_Y }); // Nằm bên phải tâm một chút
+    m_sprBar->setOrigin({ 0, barBounds.size.y / 2.f });
+    m_sprBar->setPosition({ cx + 20.f, row1_Y });
 
-    // C. Thanh Fill (Màu xanh chạy theo) - QUAN TRỌNG
-    // Chiều cao bằng thanh bar, chiều rộng ban đầu = 0
     m_barFill.setSize({ 0.f, barBounds.size.y * scale });
-    m_barFill.setFillColor(sf::Color::Cyan); // Màu xanh Cyan (hợp theme tech)
-    m_barFill.setOrigin({ 0, (barBounds.size.y * scale) / 2.f }); // Căn giữa theo chiều dọc
-    m_barFill.setPosition({ cx + 25.f, row1_Y }); // Vị trí trùng đầu thanh Bar
+    m_barFill.setFillColor(sf::Color::Cyan);
+    m_barFill.setOrigin({ 0, (barBounds.size.y * scale) / 2.f });
+    m_barFill.setPosition({ cx + 25.f, row1_Y });
 
-    // D. Nút Knob (Cục tròn)
     m_sprKnob.emplace(m_txKnob);
     m_sprKnob->setScale({ scale * 1.1f, scale * 1.1f });
     sf::FloatRect knobBounds = m_sprKnob->getLocalBounds();
     m_sprKnob->setOrigin({ knobBounds.size.x / 2.f, knobBounds.size.y / 2.f });
 
-    // Tính vị trí Knob ban đầu theo Volume
     float currentPercent = GameData::musicVolume / 100.f;
-    float barWidthReal = barBounds.size.x * scale; // Chiều dài thực tế sau khi phóng to
+    float barWidthReal = barBounds.size.x * scale;
 
-    // Đặt vị trí Knob
     m_sprKnob->setPosition({ m_sprBar->getPosition().x + (currentPercent * barWidthReal), row1_Y });
-
-    // Cập nhật độ dài thanh Fill ban đầu luôn
     m_barFill.setSize({ currentPercent * barWidthReal, barBounds.size.y * scale * 0.6f });
-    // * 0.6f để thanh màu nó bé hơn thanh nền xíu cho đẹp (như lọt vào trong)
 
+    float row2_Y = 450.f;
 
-    // ==================================================
-    // 3. SETUP TOGGLE (SFX) - CĂN HÀNG NGANG
-    // ==================================================
-    float row2_Y = 450.f; // Độ cao dòng 2
-
-    // A. Label
     m_txtSfxLabel.emplace(m_font, "SFX MUTE", 40);
     m_txtSfxLabel->setScale({ scale, scale });
     sf::FloatRect sfxBounds = m_txtSfxLabel->getLocalBounds();
-    m_txtSfxLabel->setOrigin({ sfxBounds.size.x, sfxBounds.size.y / 2.f }); // Căn lề phải
+    m_txtSfxLabel->setOrigin({ sfxBounds.size.x, sfxBounds.size.y / 2.f });
     m_txtSfxLabel->setPosition({ cx - 20.f, row2_Y });
 
-    // B. Nút Tick/Cross
     if (GameData::isSfxMuted) m_sprSfxToggle.emplace(m_txCross);
     else m_sprSfxToggle.emplace(m_txTick);
 
-    m_sprSfxToggle->setScale({ scale * 1.5f, scale * 1.5f }); // Phóng to
+    m_sprSfxToggle->setScale({ scale * 1.5f, scale * 1.5f });
     sf::FloatRect togBounds = m_sprSfxToggle->getLocalBounds();
-    m_sprSfxToggle->setOrigin({ 0, togBounds.size.y / 2.f }); // Căn lề trái
+    m_sprSfxToggle->setOrigin({ 0, togBounds.size.y / 2.f });
     m_sprSfxToggle->setPosition({ cx + 20.f, row2_Y + 5.f });
 }
 
@@ -121,46 +100,35 @@ void SettingState::updateButtons() {
     sf::Vector2f mousePos = m_window->mapPixelToCoords(sf::Mouse::getPosition(*m_window));
     bool isPressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 
-    // Cập nhật nút Back
     if (m_btnBack.has_value()) {
-        // Kiểm tra chuột có chạm vào chữ không
         if (m_btnBack->getGlobalBounds().contains(mousePos)) {
+            m_btnBack->setFillColor(sf::Color::Yellow);
+            m_btnBack->setScale({ 1.1f, 1.1f });
 
-            // --- HOVER EFFECT ---
-            m_btnBack->setFillColor(sf::Color::Yellow); // Đổi màu vàng khi rê vào
-            m_btnBack->setScale({ 1.1f, 1.1f });            // Phóng to nhẹ
-
-            // --- CLICK EVENT ---
             if (isPressed) {
                 static sf::Sound soundClick(m_buffClick);
                 soundClick.play();
 
-                // Chuyển màn
-                sf::sleep(sf::milliseconds(150)); // Chờ xíu cho hiệu ứng
+                sf::sleep(sf::milliseconds(150));
                 m_states->pop();
                 return;
             }
         }
         else {
-            // --- NORMAL STATE (Khi chuột đi ra ngoài) ---
-            m_btnBack->setFillColor(sf::Color::White); // Trả về màu trắng
-            m_btnBack->setScale({ 1.0f, 1.0f });           // Trả về kích thước gốc
+            m_btnBack->setFillColor(sf::Color::White);
+            m_btnBack->setScale({ 1.0f, 1.0f });
         }
     }
 
-    // ==================================================
-    // A. XỬ LÝ KÉO THẢ SLIDER (Music)
-    // ==================================================
     if (m_sprBar.has_value() && m_sprKnob.has_value()) {
         sf::FloatRect knobBox = m_sprKnob->getGlobalBounds();
-        sf::FloatRect barBox = m_sprBar->getGlobalBounds(); // Lấy kích thước thật trên màn hình
+        sf::FloatRect barBox = m_sprBar->getGlobalBounds();
 
         static bool wasPressed = false;
         if (isPressed && !wasPressed) {
             if (knobBox.contains(mousePos) || barBox.contains(mousePos)) {
                 m_isDragging = true;
             }
-            // (Logic Toggle SFX giữ nguyên, chỉ cần update vị trí check)
             if (m_sprSfxToggle.has_value() && m_sprSfxToggle->getGlobalBounds().contains(mousePos)) {
                 GameData::isSfxMuted = !GameData::isSfxMuted;
                 if (GameData::isSfxMuted) m_sprSfxToggle->setTexture(m_txCross);
@@ -177,21 +145,17 @@ void SettingState::updateButtons() {
             float minX = barBox.position.x + padding;
             float maxX = barBox.position.x + barBox.size.x - padding;
 
-            // Giới hạn không cho kéo ra ngoài
             if (newX < minX) newX = minX;
             if (newX > maxX) newX = maxX;
 
-            // 1. Cập nhật vị trí Knob
             m_sprKnob->setPosition({ newX, m_sprKnob->getPosition().y });
 
-            // 2. Cập nhật chiều dài thanh Fill (MỚI)
             float fillWidth = newX - (barBox.position.x);
             m_barFill.setSize({ fillWidth, m_barFill.getSize().y });
 
             float slideRange = maxX - minX;
             float percentage = (newX - minX) / slideRange;
 
-            // 3. Tính % Volume
             GameData::musicVolume = percentage * 100.f;
             GameData::bgMusic.setVolume(GameData::musicVolume);
         }
@@ -207,13 +171,11 @@ void SettingState::render(sf::RenderWindow& window) {
     if (m_title.has_value()) window.draw(*m_title);
     if (m_btnBack.has_value()) window.draw(*m_btnBack);
 
-    // --- VẼ SLIDER THEO THỨ TỰ ---
     if (m_txtMusicLabel.has_value()) window.draw(*m_txtMusicLabel);
     window.draw(m_barFill);
     if (m_sprBar.has_value()) window.draw(*m_sprBar);
     if (m_sprKnob.has_value()) window.draw(*m_sprKnob);
 
-    // Vẽ Toggle
     if (m_txtSfxLabel.has_value()) window.draw(*m_txtSfxLabel);
     if (m_sprSfxToggle.has_value()) window.draw(*m_sprSfxToggle);
 }

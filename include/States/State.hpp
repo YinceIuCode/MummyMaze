@@ -21,7 +21,4 @@ public:
     // Các hàm ảo buộc phải định nghĩa lại ở class con
     virtual void update(float dt) = 0;
     virtual void render(sf::RenderWindow& window) = 0;
-
-    // (Optional) Hàm xử lý input riêng nếu cần
-    // virtual void handleInput() = 0; 
 };

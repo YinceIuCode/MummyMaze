@@ -8,29 +8,24 @@
 Map::Map() {
     this->m_tileSize = 120.0f;
     this->scaleRatio = this->m_tileSize / 120.0f;
-    // Offset động giúp map luôn cân đối dù tile to hay nhỏ
     this->dynamicOffset = 60.f - 360.f / (720.f / this->m_tileSize);
     this->posmap = { 1290 / 2.f - 300.f, 210.f };
 
     this->loadTheme("Playmap");
 }
 
-void Map::setTileSize(float size) {
-    this->m_tileSize = size;
-    this->scaleRatio = size / 120.0f;
-    this->dynamicOffset = 60.f - 360.f / (720.f / this->m_tileSize);
+Map::~Map() {
+
 }
 
 void Map::loadTheme(const std::string& themeName) {
     std::string pathPrefix = "assets/textures/" + themeName + "/";
 
-    // 1. Load Tường
     if (!m_texWallHoriz.loadFromFile(pathPrefix + "Wall/wall_horizontal.png"))
         std::cerr << "Error loading wall H: " << themeName << "\n";
     if (!m_texWallVert.loadFromFile(pathPrefix + "Wall/wall_vertical.png"))
         std::cerr << "Error loading wall V: " << themeName << "\n";
 
-    // 2. Load Sàn
     m_texFloors.clear();
     for (int i = 0; i < 5; ++i) {
         sf::Texture tex;
@@ -39,7 +34,6 @@ void Map::loadTheme(const std::string& themeName) {
         }
     }
 
-    // 3. Load Khung (Border)
     m_texBorders.clear();
     for (int i = 0; i < 4; i++) {
         sf::Texture tex;
@@ -50,11 +44,9 @@ void Map::loadTheme(const std::string& themeName) {
     std::cerr << "Theme loaded: " << themeName << "\n";
 
     if (!m_texExit.loadFromFile("assets/textures/exit.png")) {
-		std::cerr << "Error loading exit texture\n";
+        std::cerr << "Error loading exit texture\n";
     }
 }
-
-Map::~Map() {}
 
 void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
     std::ifstream file(filePath);
@@ -76,22 +68,17 @@ void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
 
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
-            // Tọa độ ký tự trong file text
             int charX = x * 2 + 1;
             int charY = y * 2 + 1;
 
             Cell& cell = m_grid[y][x];
 
-            // Parse tường
             if (charY - 1 != 0 && lines[charY - 1][charX] == '#') cell.wallTop = true;
             if (charY + 1 != textH - 1 && lines[charY + 1][charX] == '#') cell.wallBottom = true;
             if (charX - 1 != 0 && lines[charY][charX - 1] == '#') cell.wallLeft = true;
             if (charX + 1 != textW - 1 && lines[charY][charX + 1] == '#') cell.wallRight = true;
 
-            // XỬ LÝ SPAWN ENTITY (Tính toán offset chính xác tại đây)
             char centerChar = lines[charY][charX];
-
-            // Công thức chung cho cả Player và Mummy
             float spawnX = x * m_tileSize + posmap.x - dynamicOffset;
             float spawnY = y * m_tileSize + posmap.y - dynamicOffset;
 
@@ -99,23 +86,14 @@ void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
                 player.setPosition(spawnX, spawnY);
             }
             else if (centerChar == 'M') {
-                // Truyền trực tiếp tọa độ đã tính (có trừ dynamicOffset) vào Mummy
                 mummy.setSpawn(y, x, spawnX, spawnY);
             }
-            if (lines[charY - 1][charX] == 'X') {
-				cell.exitVariant = 0;
-            }
-            if (lines[charY + 1][charX] == 'X') {
-				cell.exitVariant = 3;
-            }
-            if (lines[charY][charX + 1] == 'X') {
-				cell.exitVariant = 2;
-            }
-            if (lines[charY][charX - 1] == 'X') {
-				cell.exitVariant = 1;
-            }
 
-            // Random sàn nhà
+            if (lines[charY - 1][charX] == 'X') cell.exitVariant = 0;
+            if (lines[charY + 1][charX] == 'X') cell.exitVariant = 3;
+            if (lines[charY][charX + 1] == 'X') cell.exitVariant = 2;
+            if (lines[charY][charX - 1] == 'X') cell.exitVariant = 1;
+
             if (!m_texFloors.empty()) {
                 cell.floorVariant = rand() % m_texFloors.size();
             }
@@ -124,21 +102,18 @@ void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
 }
 
 void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
-    // 1. Xác định hàng (Grid Y) mà các nhân vật đang đứng
     int playerGridY = static_cast<int>(((player.getPosition().y - posmap.y + dynamicOffset + m_tileSize / 2) / m_tileSize));
-    int mummyGridY = mummy.getR(); // Mummy đã lưu Grid R nên lấy luôn cho nhanh
+    int mummyGridY = mummy.getR();
 
-    // --- HELPER LAMBDA ĐỂ VẼ TƯỜNG GỌN HƠN ---
     auto drawSprite = [&](const sf::Texture& tex, float x, float y, float ox, float oy) {
         sf::Sprite s(tex);
         sf::FloatRect b = s.getGlobalBounds();
-        s.setOrigin({ b.size.x / 2.f + ox, b.size.y / 2.f + oy }); // Tinh chỉnh tâm
+        s.setOrigin({ b.size.x / 2.f + ox, b.size.y / 2.f + oy });
         s.setScale({ scaleRatio, scaleRatio });
         s.setPosition({ x, y });
         window.draw(s);
         };
 
-    // 2. VẼ SÀN NHÀ (Lớp dưới cùng)
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             if (m_texFloors.empty()) continue;
@@ -155,7 +130,6 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         }
     }
 
-    // 3. VẼ BORDER TRÊN (Đè lên sàn, nằm sau tường)
     if (!m_texBorders.empty()) {
         sf::Sprite borderT(m_texBorders[0]);
         sf::FloatRect b = borderT.getGlobalBounds();
@@ -164,14 +138,12 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         window.draw(borderT);
     }
 
-    // 4. VÒNG LẶP VẼ TƯỜNG & NHÂN VẬT (Xử lý Z-Order)
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             const Cell& cell = m_grid[y][x];
             float px = x * m_tileSize + posmap.x - dynamicOffset;
             float py = y * m_tileSize + posmap.y - dynamicOffset;
 
-            // Vẽ tường Trên, Trái, Phải (Nằm sau nhân vật)
             if (cell.wallTop)   drawSprite(m_texWallHoriz, px, py - m_tileSize / 2, -5, 15);
             if (cell.wallLeft)  drawSprite(m_texWallVert, px - m_tileSize / 2, py, -5, 10);
             if (cell.wallRight) drawSprite(m_texWallVert, px + m_tileSize / 2, py, -5, 10);
@@ -182,7 +154,7 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         }
         if (y == mummyGridY) {
             mummy.render(window, scaleRatio);
-			std::cerr << "Mummy drawn at: " << mummy.getR() << " " << mummy.getC() << "\n";
+            std::cerr << "Mummy drawn at: " << mummy.getR() << " " << mummy.getC() << "\n";
         }
 
         for (int x = 0; x < m_width; ++x) {
@@ -195,23 +167,19 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         }
     }
 
-    // 5. VẼ CÁC BORDER CÒN LẠI
     if (m_texBorders.size() >= 4) {
-        // Border Phải
         sf::Sprite borderR(m_texBorders[1]);
         sf::FloatRect bR = borderR.getGlobalBounds();
         borderR.setOrigin({ 0, bR.size.y / 2.f });
         borderR.setPosition({ 660.f + posmap.x, 300.f + posmap.y });
         window.draw(borderR);
 
-        // Border Dưới
         sf::Sprite borderB(m_texBorders[2]);
         sf::FloatRect bB = borderB.getGlobalBounds();
         borderB.setOrigin({ bB.size.x / 2.f, 0 });
         borderB.setPosition({ 300.f + posmap.x, 660.f + posmap.y });
         window.draw(borderB);
 
-        // Border Trái
         sf::Sprite borderL(m_texBorders[3]);
         sf::FloatRect bL = borderL.getGlobalBounds();
         borderL.setOrigin({ bL.size.x, bL.size.y / 2.f });
@@ -223,7 +191,6 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         for (int x = 0; x < m_width; ++x) {
             const Cell& cell = m_grid[y][x];
 
-            // Nếu ô này không có cửa thì bỏ qua
             if (cell.exitVariant == -1) continue;
 
             float px = x * m_tileSize + posmap.x - dynamicOffset;
@@ -232,39 +199,38 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
             sf::Sprite exitSprite(m_texExit);
             sf::FloatRect b = exitSprite.getLocalBounds();
 
-            // Đặt tâm xoay vào giữa ảnh
             exitSprite.setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
             exitSprite.setScale({ scaleRatio, scaleRatio });
             exitSprite.setPosition({ px, py });
 
-            // Xoay và tinh chỉnh vị trí dựa theo hướng cửa (exitVariant)
-            // Lưu ý: exitVariant của bạn đang set là:
-            // 0: Up (trên), 3: Down (dưới), 2: Right (phải), 1: Left (trái)
-
             float offset = m_tileSize / 2.f;
-            // offset này để đẩy cái cửa ra sát mép tường. 
-            // Có thể cần +/- thêm một chút tùy vào hình vẽ cửa của bạn dày hay mỏng.
 
-            if (cell.exitVariant == 0) { // Cửa trên (UP)
+            if (cell.exitVariant == 0) {
                 exitSprite.setRotation(sf::degrees(-90.f));
-                exitSprite.move({ 0, -offset - 60.f * scaleRatio }); // Dời lên mép trên
+                exitSprite.move({ 0, -offset - 60.f * scaleRatio });
             }
-            else if (cell.exitVariant == 3) { // Cửa dưới (DOWN)
+            else if (cell.exitVariant == 3) {
                 exitSprite.setRotation(sf::degrees(90.f));
-                exitSprite.move({ 0, offset + 60.f * scaleRatio }); // Dời xuống mép dưới
+                exitSprite.move({ 0, offset + 60.f * scaleRatio });
             }
-            else if (cell.exitVariant == 1) { // Cửa trái (LEFT)
+            else if (cell.exitVariant == 1) {
                 exitSprite.setRotation(sf::degrees(180.f));
-                exitSprite.move({ -offset - 60.f * scaleRatio, 0 }); // Dời sang trái
+                exitSprite.move({ -offset - 60.f * scaleRatio, 0 });
             }
-            else if (cell.exitVariant == 2) { // Cửa phải (RIGHT)
+            else if (cell.exitVariant == 2) {
                 exitSprite.setRotation(sf::degrees(0.f));
-                exitSprite.move({ offset + 60.f * scaleRatio, 0 }); // Dời sang phải
+                exitSprite.move({ offset + 60.f * scaleRatio, 0 });
             }
 
             window.draw(exitSprite);
         }
     }
+}
+
+void Map::setTileSize(float size) {
+    this->m_tileSize = size;
+    this->scaleRatio = size / 120.0f;
+    this->dynamicOffset = 60.f - 360.f / (720.f / this->m_tileSize);
 }
 
 void Map::setPosition(float x, float y) {
@@ -279,13 +245,10 @@ float Map::getTileSize() const {
     return m_tileSize;
 }
 
-
 const Cell* Map::getCell(int x, int y) const {
-    // Kiểm tra an toàn: Nếu tọa độ nằm ngoài bản đồ thì trả về nullptr
     if (x < 0 || x >= m_width || y < 0 || y >= m_height) {
         return nullptr;
     }
-    // Trả về địa chỉ của ô đó trong bộ nhớ
     return &m_grid[y][x];
 }
 

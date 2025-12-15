@@ -5,31 +5,27 @@
 
 class SettingState : public State {
 private:
-    // --- NỀN & FONT ---
     sf::Texture m_bgTexture;
     std::optional<sf::Sprite> m_bgSprite;
     sf::Font m_font;
     std::optional<sf::Text> m_title;
     std::optional<sf::Text> m_btnBack;
 
-    // --- SLIDER (THANH KÉO NHẠC) ---
-    sf::Texture m_txBar;   // Ảnh thanh dài
-    sf::Texture m_txKnob;  // Ảnh cục nút tròn để kéo
+    sf::Texture m_txBar;
+    sf::Texture m_txKnob;
     std::optional<sf::Sprite> m_sprBar;
     std::optional<sf::Sprite> m_sprKnob;
     std::optional<sf::Text> m_txtMusicLabel;
     sf::RectangleShape m_barFill;
 
-    bool m_isDragging = false; // Cờ kiểm tra xem có đang giữ chuột không
+    bool m_isDragging = false;
 
-    // --- TOGGLE (BẬT TẮT SFX) ---
-    sf::Texture m_txTick;  // Ảnh dấu V
-    sf::Texture m_txCross; // Ảnh dấu X
-    std::optional<sf::Sprite> m_sprSfxToggle; // Sprite hiển thị Tick hoặc Cross
+    sf::Texture m_txTick;
+    sf::Texture m_txCross;
+    std::optional<sf::Sprite> m_sprSfxToggle;
     std::optional<sf::Text> m_txtSfxLabel;
 
-    // --- SOUND ---
-    sf::SoundBuffer m_buffClick; // Để test âm thanh
+    sf::SoundBuffer m_buffClick;
 
     void initVariables();
     void initGui();

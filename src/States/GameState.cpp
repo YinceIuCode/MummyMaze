@@ -271,11 +271,12 @@ void GameState::update(float dt) {
 
         // -- Xử lý bấm RETRY --
         if (m_btnRetry->isClicked()) {
-            // Reset lại map hiện tại
             m_map.loadMap(m_currentMapPath, m_player, m_mummy);
             clearSaveData(); // Xóa file save cũ cho công bằng
             m_endGameStatus = 0; // Trở về trạng thái đang chơi
             m_turn = TurnState::PlayerInput; // Reset lượt
+            time_machine.reset(); // Đảm bảo stack sạch sẽ
+            time_machine.push_state(m_player, m_mummy);
             sf::sleep(sf::milliseconds(200));
         }
 
@@ -376,7 +377,9 @@ void GameState::update(float dt) {
             return;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R) || (m_btnReset && m_btnReset->isClicked())) {
+            time_machine.push_state(m_player, m_mummy);
             m_map.loadMap(m_currentMapPath, m_player, m_mummy);
+            clearSaveData();
             sf::sleep(sf::milliseconds(200));
             return;
         }
@@ -388,6 +391,13 @@ void GameState::update(float dt) {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape) || (m_btnBack && m_btnBack->isClicked())) {
             m_showExitConfirm = true;
             m_isWaitingForMouseRelease = true; 
+            return;
+        }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
+            time_machine.push_state(m_player, m_mummy);
+            m_turn = TurnState::MummyThinking;
+            sf::sleep(sf::milliseconds(200));
             return;
         }
 
@@ -418,8 +428,8 @@ void GameState::update(float dt) {
             // --- LOGIC THẮNG ---
             // Nếu Player ra khỏi biên -> WIN
             if (pGrid.x < 0 || pGrid.x >= mapW || pGrid.y < 0 || pGrid.y >= mapH) {
-                std::cout << ">>> VICTORY! <<<\n"; // Debug chơi thôi
-
+                std::cout << ">>> VICTORY! <<<\n";
+                
                 // CẬP NHẬT TRẠNG THÁI WIN
                 m_endGameStatus = 1;
                 m_endGameText->setString("VICTORY!");

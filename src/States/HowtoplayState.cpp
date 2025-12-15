@@ -38,21 +38,22 @@ void HowToPlayState::initGui() {
 
     // --- 3. KHUNG CHỨA (Container) ---
     // Vẽ một hình chữ nhật màu đen mờ để chữ dễ đọc hơn
-    m_container.setSize({ 1000.f, 500.f });
+    m_container.setSize({ 1000.f, 600.f });
     m_container.setFillColor(sf::Color(0, 0, 0, 150)); // Đen, Alpha = 150 (Trong suốt)
     m_container.setOutlineColor(sf::Color::Cyan);
     m_container.setOutlineThickness(2.f);
-    m_container.setOrigin({ 500.f, 250.f }); 
-    m_container.setPosition({ cx, cy + 30.f });
+    m_container.setOrigin({ 500.f, 300.f });
+    m_container.setPosition({ cx, cy + 60.f });
 
     // --- 4. NỘI DUNG HƯỚNG DẪN ---
     // Định nghĩa nội dung: { "PHÍM", "CHỨC NĂNG" }
     std::vector<std::pair<std::string, std::string>> content = {
         { "WASD / ARROWS",  "Move Character" },
+		{ "SPACE",          "Mummy Move Next" },
         { "Key 'U'",        "Undo (Step Back)" },
         { "Key 'I'",        "Redo (Step Forward)" },
         { "Key 'P'",        "Save Game" },
-		{ "Key 'R'",        "Reset Level" }, 
+		{ "Key 'R'",        "Reset Level" },
         { "Goal",           "Reach the Exit" }
     };
 

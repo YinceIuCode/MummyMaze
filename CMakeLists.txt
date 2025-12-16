@@ -21,11 +21,20 @@ find_package(SFML 3 COMPONENTS Graphics Audio Window Main System REQUIRED)
 set(SOURCES
 	MummyN04.cpp
 	src/Core/Game.cpp
-    src/Core/Maze.cpp
-    src/Entities/Player.cpp
-    src/Core/MazeGenerator.cpp 
-    src/States/GameState.cpp
- "src/States/SettingState.cpp" "src/States/MainMenuState.cpp" "src/States/ModeSelectState.cpp" "src/Entities/Mummy.cpp" "src/GUI/Button.cpp" "src/Core/TimeControl.cpp" "src/Core/GameData.cpp" "src/States/CustomizeState.cpp" "src/States/HowtoplayState.cpp")
+    	src/Core/Maze.cpp
+	src/Core/TimeControl.cpp 
+	src/Core/GameData.cpp 
+	src/Core/MazeGenerator.cpp
+	src/GUI/Button.cpp 
+    	src/Entities/Player.cpp
+	src/Entities/Mummy.cpp
+    	src/States/GameState.cpp
+ 	src/States/SettingState.cpp 
+	src/States/MainMenuState.cpp 
+	src/States/ModeSelectState.cpp
+	src/States/CustomizeState.cpp 
+	src/States/HowtoplayState.cpp
+)
 
 add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
 
@@ -49,5 +58,3 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET MummyGame PROPERTY CXX_STANDARD 20)
 endif()
-
-#cmake -G "Visual Studio 17 2022" -A x64 -S . -B build

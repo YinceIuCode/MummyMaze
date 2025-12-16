@@ -172,7 +172,7 @@ void GameState::initVariables() {
 
     m_showExitConfirm = false;
 
-    m_darkLayer.setSize(sf::Vector2f(m_window->getSize().x, m_window->getSize().y));
+    m_darkLayer.setSize(sf::Vector2f(static_cast<float>(m_window->getSize().x), static_cast<float>(m_window->getSize().y)));
     m_darkLayer.setFillColor(sf::Color(0, 0, 0, 150));
 
     m_popupPanel.setSize(sf::Vector2f(800.f, 300.f));

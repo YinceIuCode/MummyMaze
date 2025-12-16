@@ -119,7 +119,7 @@ void CustomizeState::updateButtons() {
         if (m_btnPrev->isClicked()) {
             isHandled = true;
             m_previewIndex--;
-            if (m_previewIndex < 0) m_previewIndex = m_themes.size() - 1;
+            if (m_previewIndex < 0) m_previewIndex = static_cast<int>(m_themes.size() - 1);
             loadThemePreview(m_previewIndex);
         }
         else if (m_btnNext->isClicked()) {

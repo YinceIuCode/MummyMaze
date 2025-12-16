@@ -339,6 +339,7 @@ void GameState::update(float dt) {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape) || (m_btnBack && m_btnBack->isClicked())) {
             m_showExitConfirm = true;
             m_isWaitingForMouseRelease = true;
+			sf::sleep(sf::milliseconds(200));
             return;
         }
 

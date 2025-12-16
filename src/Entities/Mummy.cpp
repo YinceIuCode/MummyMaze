@@ -328,8 +328,6 @@ void Mummy::render(sf::RenderWindow& window, float scaleRatio) {
     // Căn Origin: Giữa chân
     sf::FloatRect bounds = sprite.getGlobalBounds();
     sprite.setOrigin({ bounds.size.x / 2.0f, bounds.size.y - 10.0f });
-
     sprite.setScale({ scaleRatio, scaleRatio });
-
     window.draw(sprite);
 }

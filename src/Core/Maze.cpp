@@ -103,7 +103,8 @@ void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
 
 void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
     int playerGridY = static_cast<int>(((player.getPosition().y - posmap.y + dynamicOffset + m_tileSize / 2) / m_tileSize));
-    int mummyGridY = mummy.getR();
+    int mummyGridY = static_cast<int>(((mummy.getPosition().y - posmap.y + dynamicOffset + m_tileSize / 2) / m_tileSize));
+	std::cerr << mummyGridY << "\n";
 
     auto drawSprite = [&](const sf::Texture& tex, float x, float y, float ox, float oy) {
         sf::Sprite s(tex);
@@ -149,13 +150,8 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
             if (cell.wallRight) drawSprite(m_texWallVert, px + m_tileSize / 2, py, -5, 10);
         }
 
-        if (y == playerGridY) {
-            player.render(window, scaleRatio);
-        }
-        if (y == mummyGridY) {
-            mummy.render(window, scaleRatio);
-            std::cerr << "Mummy drawn at: " << mummy.getR() << " " << mummy.getC() << "\n";
-        }
+        if (y == playerGridY) player.render(window, scaleRatio);
+        if (y == mummyGridY) mummy.render(window, scaleRatio);
 
         for (int x = 0; x < m_width; ++x) {
             float px = x * m_tileSize + posmap.x - dynamicOffset;

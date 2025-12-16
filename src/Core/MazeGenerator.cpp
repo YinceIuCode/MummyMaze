@@ -39,7 +39,7 @@ generate_maze::generate_maze(int input_size) { //init map
     // std::random_device rd; //dùng random seed của máy
     // rng.seed(rd());
 
-    unsigned seed = static_cast<unsigned>(chrono::steady_clock::now().time_since_epoch().count());
+    unsigned seed = (chrono::steady_clock::now().time_since_epoch().count());
     rng.seed(seed);
 }
 void generate_maze::print_maze() {
@@ -107,9 +107,8 @@ void generate_maze::generate() {
     }
     //get percentage of wall 
     double percentage = 1.0 - ((count_break_wall * 1.0) / set_of_edges.size() * 1.0); //% tường đang chiếm hiện tại
-    int upper_bound = static_cast<int>(std::min(25.0, static_cast<double>(percentage * 100.0)));
-    double wall_percentage = get_random_number(10, upper_bound) / 100.0; //có từ 15% -> 40% là tường
-    int number_wall = static_cast<int>((percentage - wall_percentage) * ((int)set_of_edges.size())); //số tường cần phá thêm
+    double wall_percentage = get_random_number(10.0, min(20.0, percentage * 100)) / 100.0; //có từ 15% -> 40% là tường
+    int number_wall = (percentage - wall_percentage) * ((int)set_of_edges.size()); //số tường cần phá thêm
     //cout << percentage << " "<< wall_percentage << " " << number_wall << " " << parent.size() << "\n";
     // 
     // cout << "Wall percentage at the beginning: 100%\n";

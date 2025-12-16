@@ -19,4 +19,11 @@ public:
         undo_stack = stack<pair<Player, Mummy>>();
         redo_stack = stack<pair<Player, Mummy>>();
     }
+    bool canUndo() const {
+        return !undo_stack.empty();
+    }
+
+    bool canRedo() const {
+        return !redo_stack.empty();
+    }
 };

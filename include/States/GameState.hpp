@@ -25,13 +25,19 @@ private:
     int m_currentMapSize;
     std::string m_currentMapPath = "assets/mazes/maze1.txt";
 
+    int m_stepCount;
+    std::optional<sf::Text> m_stepText;
+    std::stack<int> m_undoSteps;
+    std::stack<int> m_redoSteps;
+
     std::unique_ptr<Button> m_btnUndo;
     std::unique_ptr<Button> m_btnRedo;
     std::unique_ptr<Button> m_btnReset;
     std::unique_ptr<Button> m_btnSave;
     std::unique_ptr<Button> m_btnBack;
 
-    sf::Texture m_txUndo, m_txRedo, m_txReset, m_txSave, m_txBack, m_txYes, m_txNo, m_txNext;
+    sf::Texture m_txUndo, m_txRedo, m_txReset, m_txSave, m_txBack, m_txYes, m_txNo, m_txNext, m_txBg, m_txRetry;
+	std::optional<sf::Sprite> m_bgSprite;
 
     float m_totalTime = 0.0f;
     bool m_isWaitingForMouseRelease = true;

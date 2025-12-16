@@ -24,6 +24,11 @@ public:
 
     void setSound(const sf::SoundBuffer& hoverBuff, const sf::SoundBuffer& clickBuff);
     void setBreathing(bool enable);
+    void setColor(const sf::Color& color) {
+        if (m_sprite.has_value()) {
+            m_sprite->setColor(color);
+        }
+	}
 
     void update(const sf::Vector2f& mousePos, bool isMousePressed, float totalTime, bool blocked = false);
     bool isClicked() const;

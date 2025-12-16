@@ -130,17 +130,23 @@ void GameState::initVariables() {
     if (!m_txYes.loadFromFile("assets/textures/Menu/icon_tick.png")) std::cerr << "Err Yes\n";
     if (!m_txNo.loadFromFile("assets/textures/Menu/icon_cross.png")) std::cerr << "Err No\n";
     if (!m_txNext.loadFromFile("assets/textures/Menu/btn_next.png")) std::cerr << "Err Next\n";
+	if (!m_txBg.loadFromFile("assets/textures/Backgrounds/bg_game.png")) std::cerr << "Err Bg\n";
+	if (!m_txRetry.loadFromFile("assets/textures/Menu/btn_retry.png")) std::cerr << "Err Retry\n";
 
-    float startX = 100.f;
-    float startY = 200.f;
-    float gap = 120.f;
-    float scale = 2.0f;
+    float startX = 160.f;
+    float startY = 400.f;
+    float gap = 150.f;
+    float scale = 0.1f;
+    m_stepCount = 0;
 
     m_btnUndo = std::make_unique<Button>(m_txUndo, startX, startY, scale);
-    m_btnReset = std::make_unique<Button>(m_txReset, startX, startY + gap, scale);
-    m_btnSave = std::make_unique<Button>(m_txSave, startX, startY + gap * 2, scale);
-    m_btnRedo = std::make_unique<Button>(m_txRedo, startX, startY + gap * 3, scale);
-    m_btnBack = std::make_unique<Button>(m_txBack, 1220.f, 50.f, scale);
+    m_btnRedo = std::make_unique<Button>(m_txRedo, startX, startY + gap, scale);
+    m_btnSave = std::make_unique<Button>(m_txSave, startX, startY + gap * 2, 0.2f);
+    m_btnReset = std::make_unique<Button>(m_txReset, startX, startY + gap * 3, scale);
+    m_btnBack = std::make_unique<Button>(m_txBack, 1230.f, 50.f, 2.0f);
+
+	m_bgSprite.emplace(m_txBg);
+    m_bgSprite->setPosition({ 0.f, 0.f });
 
     std::ifstream fileCount(m_currentMapPath);
     int lineCount = 0;
@@ -164,13 +170,14 @@ void GameState::initVariables() {
     m_mummy.loadTheme(themePath);
 
     float realMapWidth = logicalSize * tileSize;
-    m_map.setPosition(1290.f / 2.f - 300.f, 210.f);
+    m_map.setPosition(1290.f / 2.f - 135.f, 210.f);
 
     m_map.loadMap(m_currentMapPath, m_player, m_mummy);
     time_machine.push_state(m_player, m_mummy);
     m_turn = TurnState::PlayerInput;
 
     m_showExitConfirm = false;
+
 
     m_darkLayer.setSize(sf::Vector2f(static_cast<float>(m_window->getSize().x), static_cast<float>(m_window->getSize().y)));
     m_darkLayer.setFillColor(sf::Color(0, 0, 0, 150));
@@ -187,6 +194,13 @@ void GameState::initVariables() {
         std::cerr << "Error loading font for popup text!\n";
     }
 
+    m_stepText.emplace(font, "Steps: 0", 40);
+    m_stepText->setFillColor(sf::Color::White);
+    m_stepText->setOutlineColor(sf::Color::Black);
+    m_stepText->setOutlineThickness(3.0f);
+
+    m_stepText->setPosition({ 50.f, 50.f });
+
     m_popupText.emplace(font, "Save Game Before Exit?", 50);
     m_popupText->setFillColor(sf::Color::White);
 
@@ -197,8 +211,8 @@ void GameState::initVariables() {
     float centerX = m_window->getSize().x / 2.f;
     float centerY = m_window->getSize().y / 2.f;
 
-    m_btnYes = std::make_unique<Button>(m_txYes, centerX - 100.f, centerY + 60.f, 1.5f);
-    m_btnNo = std::make_unique<Button>(m_txNo, centerX + 100.f, centerY + 60.f, 1.5f);
+    m_btnYes = std::make_unique<Button>(m_txYes, centerX - 100.f, centerY + 60.f, 2.0f);
+    m_btnNo = std::make_unique<Button>(m_txNo, centerX + 100.f, centerY + 60.f, 2.0f);
 
     m_endGameStatus = 0;
 
@@ -210,9 +224,9 @@ void GameState::initVariables() {
     float cx = m_window->getSize().x / 2.f;
     float cy = m_window->getSize().y / 2.f;
 
-    m_btnRetry = std::make_unique<Button>(m_txReset, cx - 80.f, cy + 80.f, 1.5f);
-    m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx, cy + 80.f, 1.5f);
-    m_btnNext = std::make_unique<Button>(m_txNext, cx + 80.f, cy + 80.f, 1.5f);
+    m_btnRetry = std::make_unique<Button>(m_txRetry, cx - 80.f, cy + 80.f, 2.0f);
+    m_btnMenuEnd = std::make_unique<Button>(m_txBack, cx, cy + 80.f, 2.0f);
+    m_btnNext = std::make_unique<Button>(m_txNext, cx + 80.f, cy + 80.f, 2.0f);
 }
 
 void GameState::update(float dt) {
@@ -235,6 +249,10 @@ void GameState::update(float dt) {
             m_turn = TurnState::PlayerInput;
             time_machine.reset();
             time_machine.push_state(m_player, m_mummy);
+            while (!m_undoSteps.empty()) m_undoSteps.pop();
+            while (!m_redoSteps.empty()) m_redoSteps.pop();
+            m_stepCount = 0;
+            m_stepText->setString("Steps: 0");
             sf::sleep(sf::milliseconds(200));
         }
 
@@ -311,22 +329,46 @@ void GameState::update(float dt) {
     case TurnState::PlayerInput:
     {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U) || (m_btnUndo && m_btnUndo->isClicked())) {
-            auto old_state = time_machine.undo_state(m_player, m_mummy);
-            m_player = old_state.first;
-            m_mummy = old_state.second;
+            if (time_machine.canUndo() && !m_undoSteps.empty()) {
+                m_redoSteps.push(m_stepCount);
+
+                auto old_state = time_machine.undo_state(m_player, m_mummy);
+                m_player = old_state.first;
+                m_mummy = old_state.second;
+
+                m_stepCount = m_undoSteps.top();
+                m_undoSteps.pop();
+
+                m_stepText->setString("Steps: " + std::to_string(m_stepCount));
+            }
             sf::sleep(sf::milliseconds(200));
             return;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I) || (m_btnRedo && m_btnRedo->isClicked())) {
-            auto future_state = time_machine.redo_state();
-            m_player = future_state.first;
-            m_mummy = future_state.second;
+            if (time_machine.canRedo() && !m_redoSteps.empty()) {
+                m_undoSteps.push(m_stepCount);
+
+                auto future_state = time_machine.redo_state();
+                m_player = future_state.first;
+                m_mummy = future_state.second;
+
+                m_stepCount = m_redoSteps.top();
+                m_redoSteps.pop();
+
+                m_stepText->setString("Steps: " + std::to_string(m_stepCount));
+            }
             sf::sleep(sf::milliseconds(200));
             return;
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R) || (m_btnReset && m_btnReset->isClicked())) {
             time_machine.push_state(m_player, m_mummy);
+
+            m_undoSteps.push(m_stepCount);
+            while (!m_redoSteps.empty()) m_redoSteps.pop();
             m_map.loadMap(m_currentMapPath, m_player, m_mummy);
+            m_stepCount = 0;
+            m_stepText->setString("Steps: 0");
+
             clearSaveData();
             sf::sleep(sf::milliseconds(200));
             return;
@@ -361,9 +403,20 @@ void GameState::update(float dt) {
 
         if (isPressingKey && !m_player.isMoving()) {
             time_machine.push_state(m_player, m_mummy);
+            m_undoSteps.push(m_stepCount);
+
+            while (!m_redoSteps.empty()) m_redoSteps.pop();
+
             m_player.processInput(m_map);
-            if (m_player.isMoving()) m_turn = TurnState::PlayerMoving;
-            else time_machine.undo_state(m_player, m_mummy);
+            if (m_player.isMoving()) {
+                m_turn = TurnState::PlayerMoving;
+                m_stepCount++; // Tăng bước mới
+                m_stepText->setString("Steps: " + std::to_string(m_stepCount));
+            }
+            else {
+                time_machine.undo_state(m_player, m_mummy);
+                if (!m_undoSteps.empty()) m_undoSteps.pop();
+            }
         }
         break;
     }
@@ -439,9 +492,31 @@ void GameState::update(float dt) {
 }
 
 void GameState::render(sf::RenderWindow& window) {
+	if (m_bgSprite) window.draw(*m_bgSprite);
+    window.draw(m_darkLayer);
     m_map.draw(window, m_player, m_mummy);
-    if (m_btnUndo)  m_btnUndo->render(window);
-    if (m_btnRedo)  m_btnRedo->render(window);
+
+    window.draw(*m_stepText);
+
+    if (m_btnUndo) {
+        if (time_machine.canUndo()) {
+            m_btnUndo->setColor(sf::Color::White);
+        }
+        else {
+            m_btnUndo->setColor(sf::Color(100, 100, 100, 150));
+        }
+    }
+
+    if (m_btnRedo) {
+        if (time_machine.canRedo()) {
+            m_btnRedo->setColor(sf::Color::White);
+        }
+        else {
+            m_btnRedo->setColor(sf::Color(100, 100, 100, 150));
+        }
+    }
+	if (m_btnUndo)  m_btnUndo->render(window);
+	if (m_btnRedo)  m_btnRedo->render(window);
     if (m_btnReset) m_btnReset->render(window);
     if (m_btnSave)  m_btnSave->render(window);
     if (m_btnBack)  m_btnBack->render(window);

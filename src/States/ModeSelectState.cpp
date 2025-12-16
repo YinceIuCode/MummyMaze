@@ -1,4 +1,4 @@
-﻿#include "States/ModeSelectState.hpp"
+﻿#include "../../include/States/ModeSelectState.hpp"
 #include <iostream>
 
 ModeSelectState::ModeSelectState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)

@@ -3,8 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <stack>
 #include <memory>
-#include "States/State.hpp"
-#include "Core/GameData.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/Core/GameData.hpp"
 
 class Game {
 private:

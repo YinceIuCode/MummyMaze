@@ -1,4 +1,4 @@
-﻿#include "States/SettingState.hpp"
+﻿#include "../../include/States/SettingState.hpp"
 #include <iostream>
 #include <string>
 #include <cmath>

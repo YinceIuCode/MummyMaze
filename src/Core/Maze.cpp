@@ -1,6 +1,6 @@
-﻿#include <Core/Maze.hpp>
-#include <Entities/Player.hpp>
-#include <Entities/Mummy.hpp>
+﻿#include "../../include/Core/Maze.hpp"
+#include "../../include/Entities/Player.hpp"
+#include "../../include/Entities/Mummy.hpp"
 #include <fstream>
 #include <iostream>
 #include <cstdlib>

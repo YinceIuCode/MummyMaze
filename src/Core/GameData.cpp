@@ -1,4 +1,4 @@
-﻿#include "Core/GameData.hpp"
+﻿#include "../../include/Core/GameData.hpp"
 
 // Khởi tạo giá trị mặc định
 float GameData::musicVolume = 50.0f; // Nhạc nền 50%

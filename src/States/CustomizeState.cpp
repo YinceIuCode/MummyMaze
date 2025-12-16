@@ -1,4 +1,4 @@
-﻿#include "States/CustomizeState.hpp"
+﻿#include "../../include/States/CustomizeState.hpp"
 #include <iostream>
 
 CustomizeState::CustomizeState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)

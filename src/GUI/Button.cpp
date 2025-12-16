@@ -1,5 +1,5 @@
-﻿#include <GUI/Button.hpp>
-#include <Core/GameData.hpp>
+﻿#include "../../include/GUI/Button.hpp"
+#include "../../include/Core/GameData.hpp"
 #include <iostream>
 
 Button::Button(const sf::Texture& texture, float x, float y, float scale) {

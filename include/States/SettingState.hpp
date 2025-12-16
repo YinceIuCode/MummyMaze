@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "States/State.hpp"
-#include "GUI/Button.hpp"
-#include "Core/GameData.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/GUI/Button.hpp"
+#include "../../include/Core/GameData.hpp"
 
 class SettingState : public State {
 private:

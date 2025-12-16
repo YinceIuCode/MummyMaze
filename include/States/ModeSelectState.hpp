@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "States/State.hpp"
-#include "States/GameState.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/States/GameState.hpp"
 #include <SFML/Audio.hpp>
 
 class ModeSelectState : public State {

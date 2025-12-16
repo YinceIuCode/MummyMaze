@@ -1,5 +1,5 @@
-﻿#include "States/HowToPlayState.hpp"
-#include "Core/GameData.hpp"
+﻿#include "../../include/States/HowToPlayState.hpp"
+#include "../../include/Core/GameData.hpp"
 #include <iostream>
 
 HowToPlayState::HowToPlayState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)

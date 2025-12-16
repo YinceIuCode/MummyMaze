@@ -1,5 +1,5 @@
-﻿#include "Core/Game.hpp"
-#include "States/MainMenuState.hpp"
+﻿#include "../../include/Core/Game.hpp"
+#include "../../include/States/MainMenuState.hpp"
 #include <iostream>
 
 void Game::initStates() {

@@ -1,12 +1,12 @@
 ﻿#pragma once
-#include "States/State.hpp"
-#include "Core/Maze.hpp"
-#include "Entities/Player.hpp"
-#include "Entities/Mummy.hpp"
-#include "Core/MazeGenerator.hpp"
-#include "Core/GameData.hpp"
-#include "Core/TimeControl.hpp"
-#include "GUI/Button.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/Core/Maze.hpp"
+#include "../../include/Entities/Player.hpp"
+#include "../../include/Entities/Mummy.hpp"
+#include "../../include/Core/MazeGenerator.hpp"
+#include "../../include/Core/GameData.hpp"
+#include "../../include/Core/TimeControl.hpp"
+#include "../../include/GUI/Button.hpp"
 
 enum class TurnState {
     PlayerInput,

@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "States/State.hpp"
-#include "GUI/Button.hpp"
-#include "Core/GameData.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/GUI/Button.hpp"
+#include "../../include/Core/GameData.hpp"
 #include <vector>
 
 // Struct giờ chỉ cần 2 trường này thôi

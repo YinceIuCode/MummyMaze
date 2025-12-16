@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "States/State.hpp"
-#include "GUI/Button.hpp"
+#include "../../include/States/State.hpp"
+#include "../../include/GUI/Button.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 

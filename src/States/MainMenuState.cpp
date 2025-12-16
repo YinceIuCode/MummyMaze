@@ -1,8 +1,8 @@
-﻿#include "States/MainMenuState.hpp"
-#include "States/ModeSelectState.hpp"
-#include "States/SettingState.hpp" 
-#include "States/CustomizeState.hpp"
-#include "States/HowtoplayState.hpp"
+﻿#include "../../include/States/MainMenuState.hpp"
+#include "../../include/States/ModeSelectState.hpp"
+#include "../../include/States/SettingState.hpp" 
+#include "../../include/States/CustomizeState.hpp"
+#include "../../include/States/HowtoplayState.hpp"
 #include <fstream>
 #include <iostream>
 

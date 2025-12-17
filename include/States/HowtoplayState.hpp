@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../../include/States/State.hpp"
+#include "../../include/GUI/Button.hpp"
 #include <vector>
 
 class HowToPlayState : public State {
@@ -10,6 +11,7 @@ private:
 
     std::optional<sf::Text> m_title;
     std::optional<sf::Text> m_btnBack;
+    std::optional<sf::Text> m_btnTry;
 
     sf::RectangleShape m_container;
 

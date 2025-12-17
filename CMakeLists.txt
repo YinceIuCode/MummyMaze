@@ -21,14 +21,13 @@ find_package(SFML 3 COMPONENTS Graphics Audio Window Main System REQUIRED)
 set(SOURCES
 	MummyN04.cpp
 	src/Core/Game.cpp
-    	src/Core/Maze.cpp
-	src/Core/TimeControl.cpp 
-	src/Core/GameData.cpp 
+    src/Core/Maze.cpp
+    src/Core/GameData.cpp 
 	src/Core/MazeGenerator.cpp
 	src/GUI/Button.cpp 
-    	src/Entities/Player.cpp
+    src/Entities/Player.cpp
 	src/Entities/Mummy.cpp
-    	src/States/GameState.cpp
+    src/States/GameState.cpp
  	src/States/SettingState.cpp 
 	src/States/MainMenuState.cpp 
 	src/States/ModeSelectState.cpp
@@ -36,7 +35,7 @@ set(SOURCES
 	src/States/HowtoplayState.cpp
 )
 
-add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES} )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 

@@ -134,10 +134,11 @@ void GameState::initVariables() {
 	if (!m_txRetry.loadFromFile("assets/textures/Menu/btn_retry.png")) std::cerr << "Err Retry\n";
 
     float startX = 160.f;
-    float startY = 400.f;
-    float gap = 150.f;
+    float startY = 350.f;
+    float gap = 160.f;
     float scale = 0.1f;
     m_stepCount = 0;
+    m_inputCooldown = 0.0f;
 
     m_btnUndo = std::make_unique<Button>(m_txUndo, startX, startY, scale);
     m_btnRedo = std::make_unique<Button>(m_txRedo, startX, startY + gap, scale);
@@ -173,11 +174,10 @@ void GameState::initVariables() {
     m_map.setPosition(1290.f / 2.f - 135.f, 210.f);
 
     m_map.loadMap(m_currentMapPath, m_player, m_mummy);
-    time_machine.push_state(m_player, m_mummy);
+    time_machine.push_state(m_player, m_mummy, m_stepCount);
     m_turn = TurnState::PlayerInput;
 
     m_showExitConfirm = false;
-
 
     m_darkLayer.setSize(sf::Vector2f(static_cast<float>(m_window->getSize().x), static_cast<float>(m_window->getSize().y)));
     m_darkLayer.setFillColor(sf::Color(0, 0, 0, 150));
@@ -198,8 +198,9 @@ void GameState::initVariables() {
     m_stepText->setFillColor(sf::Color::White);
     m_stepText->setOutlineColor(sf::Color::Black);
     m_stepText->setOutlineThickness(3.0f);
-
-    m_stepText->setPosition({ 50.f, 50.f });
+	sf::FloatRect stepTextRect = m_stepText->getLocalBounds();
+	m_stepText->setOrigin({ stepTextRect.size.x / 2.0f, stepTextRect.size.y / 2.0f });
+    m_stepText->setPosition({ 160.f, 50.f });
 
     m_popupText.emplace(font, "Save Game Before Exit?", 50);
     m_popupText->setFillColor(sf::Color::White);
@@ -231,6 +232,9 @@ void GameState::initVariables() {
 
 void GameState::update(float dt) {
     m_totalTime += dt;
+    if (m_inputCooldown > 0.0f) {
+        m_inputCooldown -= dt;
+    }
     sf::Vector2f mousePos = m_window->mapPixelToCoords(sf::Mouse::getPosition(*m_window));
     bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 
@@ -248,9 +252,7 @@ void GameState::update(float dt) {
             m_endGameStatus = 0;
             m_turn = TurnState::PlayerInput;
             time_machine.reset();
-            time_machine.push_state(m_player, m_mummy);
-            while (!m_undoSteps.empty()) m_undoSteps.pop();
-            while (!m_redoSteps.empty()) m_redoSteps.pop();
+            time_machine.push_state(m_player, m_mummy, m_stepCount);
             m_stepCount = 0;
             m_stepText->setString("Steps: 0");
             sf::sleep(sf::milliseconds(200));
@@ -328,65 +330,61 @@ void GameState::update(float dt) {
     switch (m_turn) {
     case TurnState::PlayerInput:
     {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U) || (m_btnUndo && m_btnUndo->isClicked())) {
-            if (time_machine.canUndo() && !m_undoSteps.empty()) {
-                m_redoSteps.push(m_stepCount);
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::U) || (m_btnUndo && m_btnUndo->isClicked())) && m_inputCooldown <= 0.0f) {
+            if (time_machine.canUndo()) {
+                // Gọi hàm kiểu mới: Nhận về 1 cục snapshot chứa tất cả
+                GameSnapshot old_state = time_machine.undo_state(m_player, m_mummy, m_stepCount);
 
-                auto old_state = time_machine.undo_state(m_player, m_mummy);
-                m_player = old_state.first;
-                m_mummy = old_state.second;
-
-                m_stepCount = m_undoSteps.top();
-                m_undoSteps.pop();
-
-                m_stepText->setString("Steps: " + std::to_string(m_stepCount));
-            }
-            sf::sleep(sf::milliseconds(200));
-            return;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I) || (m_btnRedo && m_btnRedo->isClicked())) {
-            if (time_machine.canRedo() && !m_redoSteps.empty()) {
-                m_undoSteps.push(m_stepCount);
-
-                auto future_state = time_machine.redo_state();
-                m_player = future_state.first;
-                m_mummy = future_state.second;
-
-                m_stepCount = m_redoSteps.top();
-                m_redoSteps.pop();
+                // Bung lụa dữ liệu ra
+                m_player = old_state.player;
+                m_mummy = old_state.mummy;
+                m_stepCount = old_state.stepCount; // Tự động đồng bộ số bước
 
                 m_stepText->setString("Steps: " + std::to_string(m_stepCount));
+
+                m_inputCooldown = 0.2f;
             }
-            sf::sleep(sf::milliseconds(200));
             return;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R) || (m_btnReset && m_btnReset->isClicked())) {
-            time_machine.push_state(m_player, m_mummy);
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I) || (m_btnRedo && m_btnRedo->isClicked())) && m_inputCooldown <= 0.0f) {
+            if (time_machine.canRedo()) {
+                // Tương tự Undo
+                GameSnapshot future_state = time_machine.redo_state(m_player, m_mummy, m_stepCount);
 
-            m_undoSteps.push(m_stepCount);
-            while (!m_redoSteps.empty()) m_redoSteps.pop();
+                m_player = future_state.player;
+                m_mummy = future_state.mummy;
+                m_stepCount = future_state.stepCount;
+
+                m_stepText->setString("Steps: " + std::to_string(m_stepCount));
+
+                m_inputCooldown = 0.2f;
+            }
+            return;
+        }
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R) || (m_btnReset && m_btnReset->isClicked())) && m_inputCooldown <= 0.0f) {
+            time_machine.push_state(m_player, m_mummy, m_stepCount);
             m_map.loadMap(m_currentMapPath, m_player, m_mummy);
             m_stepCount = 0;
             m_stepText->setString("Steps: 0");
 
             clearSaveData();
-            sf::sleep(sf::milliseconds(200));
+            m_inputCooldown = 0.2f;
             return;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P) || (m_btnSave && m_btnSave->isClicked())) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P) || (m_btnSave && m_btnSave->isClicked())) && m_inputCooldown <= 0) {
             saveGame();
-            sf::sleep(sf::milliseconds(200));
+			m_inputCooldown = 0.2f;
             return;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape) || (m_btnBack && m_btnBack->isClicked())) {
+        if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape) || (m_btnBack && m_btnBack->isClicked())) && m_inputCooldown <= 0) {
             m_showExitConfirm = true;
             m_isWaitingForMouseRelease = true;
-			sf::sleep(sf::milliseconds(200));
+			m_inputCooldown = 0.2f;
             return;
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
-            time_machine.push_state(m_player, m_mummy);
+            time_machine.push_state(m_player, m_mummy, m_stepCount);
             m_turn = TurnState::MummyThinking;
             sf::sleep(sf::milliseconds(200));
             return;
@@ -402,10 +400,7 @@ void GameState::update(float dt) {
             sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S));
 
         if (isPressingKey && !m_player.isMoving()) {
-            time_machine.push_state(m_player, m_mummy);
-            m_undoSteps.push(m_stepCount);
-
-            while (!m_redoSteps.empty()) m_redoSteps.pop();
+            time_machine.push_state(m_player, m_mummy, m_stepCount);
 
             m_player.processInput(m_map);
             if (m_player.isMoving()) {
@@ -414,8 +409,10 @@ void GameState::update(float dt) {
                 m_stepText->setString("Steps: " + std::to_string(m_stepCount));
             }
             else {
-                time_machine.undo_state(m_player, m_mummy);
-                if (!m_undoSteps.empty()) m_undoSteps.pop();
+                GameSnapshot restore = time_machine.undo_state(m_player, m_mummy, m_stepCount);
+                m_player = restore.player;
+                m_mummy = restore.mummy;
+                m_stepCount = restore.stepCount;
             }
         }
         break;

@@ -21,14 +21,13 @@ private:
     Player m_player;
     Mummy m_mummy;
     time_controller time_machine;
+    float m_inputCooldown;
 
     int m_currentMapSize;
     std::string m_currentMapPath = "assets/mazes/maze1.txt";
 
     int m_stepCount;
     std::optional<sf::Text> m_stepText;
-    std::stack<int> m_undoSteps;
-    std::stack<int> m_redoSteps;
 
     std::unique_ptr<Button> m_btnUndo;
     std::unique_ptr<Button> m_btnRedo;

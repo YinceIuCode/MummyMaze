@@ -1,5 +1,6 @@
 ﻿#include "../../include/States/HowToPlayState.hpp"
 #include "../../include/Core/GameData.hpp"
+#include "../../include/States/GameState.hpp"
 #include <iostream>
 
 HowToPlayState::HowToPlayState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states)
@@ -34,6 +35,11 @@ void HowToPlayState::initGui() {
 
     m_btnBack.emplace(m_font, "BACK", 50);
     m_btnBack->setPosition({ 80.f, 60.f });
+
+    m_btnTry.emplace(m_font, "TRY IT NOW!", 50);
+	sf::FloatRect tbTry = m_btnTry->getLocalBounds();
+	m_btnTry->setOrigin({ tbTry.size.x / 2.f, tbTry.size.y / 2.f });
+	m_btnTry->setPosition({ cx, m_window->getSize().y - 80.f });
 
     m_container.setSize({ 1000.f, 600.f });
     m_container.setFillColor(sf::Color(0, 0, 0, 150));
@@ -82,18 +88,43 @@ void HowToPlayState::updateInput(float dt) {
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
                 if (!GameData::isSfxMuted) {
-                    static sf::Sound snd(m_buffClick);
+                    sf::Sound snd(m_buffClick);
                     if (snd.getStatus() != sf::Sound::Status::Playing) snd.play();
                 }
 
                 sf::sleep(sf::milliseconds(150));
                 m_states->pop();
+                return;
             }
         }
         else {
             m_btnBack->setFillColor(sf::Color::White);
         }
     }
+    if (m_btnTry.has_value()) {
+        if (m_btnTry->getGlobalBounds().contains(mousePos)) {
+            m_btnTry->setFillColor(sf::Color::Yellow);
+			m_btnTry->setStyle(sf::Text::Bold);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+                if (!GameData::isSfxMuted) {
+                    sf::Sound snd(m_buffClick);
+                    if (snd.getStatus() != sf::Sound::Status::Playing) snd.play();
+                }
+                sf::sleep(sf::milliseconds(150));
+                m_states->push(std::make_unique<HowToPlayState>(m_window, m_states));
+                auto createAndPlay = [&]() {
+                    auto newGameState = std::make_unique<GameState>(m_window, m_states, "assets/mazes/mazeplay.txt", false);
+                    auto statesStack = m_states;
+                    statesStack->push(std::move(newGameState));
+                    };
+				createAndPlay();
+            }
+        }
+        else {
+            m_btnTry->setFillColor(sf::Color::White);
+            m_btnTry->setStyle(sf::Text::Bold);
+        }
+	}
 }
 
 void HowToPlayState::update(float dt) {
@@ -103,6 +134,7 @@ void HowToPlayState::update(float dt) {
 void HowToPlayState::render(sf::RenderWindow& window) {
     if (m_bgSprite.has_value()) window.draw(*m_bgSprite);
     if (m_title.has_value()) window.draw(*m_title);
+    if (m_btnTry.has_value()) window.draw(*m_btnTry);
 
     window.draw(m_container);
 

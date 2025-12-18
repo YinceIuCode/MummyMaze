@@ -18,10 +18,13 @@ private:
     sf::Font m_font;
     std::optional<sf::Text> m_title;
     std::optional<sf::Text> m_btnBack; // Nút Back dạng Text
+    std::optional<sf::Text> m_loadingText;
 
     // --- DATA ---
     std::vector<ThemeInfo> m_themes;
     int m_previewIndex = 0;
+    int m_lastThemeId;
+    sf::RectangleShape m_darkLayer;
 
     // --- PREVIEW AREA ---
     sf::Texture m_txPreviewPlayer;
@@ -41,6 +44,8 @@ private:
     void initGui();
     void loadThemePreview(int index); // Hàm này sẽ tự ghép chuỗi đường dẫn
     void updateButtons();
+    void drawLoadingScreen();
+	void reloadBackground();
 
 public:
     CustomizeState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

@@ -53,6 +53,8 @@ private:
         return (x >= 0 && x < maze_size && y >= 0 && y < maze_size);
     }
     void init_real_maze() {
+        parent.clear();
+        component_size.clear();
         maze_layout.assign(real_size, string(real_size, ' '));
         for (int i = 0; i < real_size; i++) {
             for (int j = 0; j < real_size; j++) {
@@ -78,6 +80,8 @@ public:
     position player, mummy, exit_cell;
     generate_maze(int input_size);
     void print_maze();
+    void build_maze();
+    void reset_data();
     void generate();
     int get_random_number(int minimum, int maximum);
     int can_solve_the_maze();

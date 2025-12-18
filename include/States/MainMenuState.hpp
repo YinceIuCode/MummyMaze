@@ -14,6 +14,9 @@ private:
     std::optional<sf::Text> m_HowToPlayText;
     float m_msgTimer = 0.f;
 
+    int m_lastThemeId;
+    sf::RectangleShape m_darkLayer;
+
     std::unique_ptr<Button> m_btnPlay;
     std::unique_ptr<Button> m_btnCustomize;
     std::unique_ptr<Button> m_btnSettings;
@@ -32,6 +35,7 @@ private:
     void initVariables();
     void initGui();
     void updateButtons();
+    void reloadBackground();
 
 public:
     MainMenuState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

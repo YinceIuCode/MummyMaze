@@ -27,9 +27,13 @@ private:
 
     sf::SoundBuffer m_buffClick;
 
+    int m_lastThemeId;
+    sf::RectangleShape m_darkLayer;
+
     void initVariables();
     void initGui();
     void updateButtons();
+	void reloadBackground();
 
 public:
     SettingState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

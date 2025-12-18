@@ -9,17 +9,6 @@
 #include <cassert>
 
 int generate_maze::get_random_number(int minimum, int maximum) {
-
-    // create a random device and seed Mersenne Twister engine (khởi tạo lại bộ máy random)
-    // std::random_device rd;
-    // std::mt19937 gen(rd()); //Mersenne Twister engine
-    // std::uniform_int_distribution<> RAND(minimum, maximum); //guarantee all number in [minimum,maximum] has equal probability of appearing
-    // return RAND(gen);
-
-    // // tạo phân phối đều trong khoảng [minimum, maximum]
-    // std::uniform_int_distribution<int> dist(minimum, maximum);
-    // // dùng rng của class để lấy số
-    // return dist(rng);
     assert(minimum <= maximum);
     return uniform_int_distribution<int>(minimum, maximum)(rng);
 
@@ -35,9 +24,6 @@ generate_maze::generate_maze(int input_size) { //init map
     //chương trình chạy nhanh -> seed random giống nhau
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // std::mt19937 rng(seed);
-
-    // std::random_device rd; //dùng random seed của máy
-    // rng.seed(rd());
 
     unsigned seed = (chrono::steady_clock::now().time_since_epoch().count());
     rng.seed(seed);
@@ -68,10 +54,50 @@ void generate_maze::print_maze() {
 int manhattan_distance(position a, position b) { //mahattan distance from (x,y) to (u, v)
     return abs(a.x - b.x) + abs(a.y - b.y);
 }
-void generate_maze::generate() {
+
+vector <int> dx = { 0, 0, 1, -1 };
+vector <int> dy = { 1, -1, 0, 0 };
+
+int get_id_maze(int x, int y, int n) {
+    return x * n + y;
+}
+
+void distance_from_cell(vector <int>& distance_exit, position a, int maze_size, const vector <string>& maze_layout) {
+    int ans = 0;
+    queue <pair<position, int> > q;
+    //cout << a.x <<" " << a.y << endl;
+    distance_exit[get_id_maze(a.x, a.y, maze_size)] = 0;
+    q.push({ a, 0 });
+    while (!q.empty()) {
+        auto u = q.front();
+        int currx = u.first.x, curry = u.first.y;
+        // cout << currx << " " << curry << endl;
+        int curr_distance = u.second;
+        q.pop();
+        for (int i = 0; i < 4; i++) {
+            int newx = currx + dx[i], newy = curry + dy[i];
+
+            if (newx < 0 || newx >= maze_size || newy < 0 || newy >= maze_size) {
+                continue;
+            }
+            if (maze_layout[get_real_coordinates(currx) + dx[i]][get_real_coordinates(curry) + dy[i]] == '#') {
+                continue;
+            }
+            if (distance_exit[get_id_maze(newx, newy, maze_size)] <= curr_distance + 1) {
+                continue;
+            }
+            distance_exit[get_id_maze(newx, newy, maze_size)] = curr_distance + 1;
+            q.push({ {newx,newy}, curr_distance + 1 });
+        }
+    }
+}
+
+void generate_maze::build_maze() {
+
     init_real_maze();
+
     vector <dsu_edge> set_of_edges; //init dsu
-    set_of_edges.reserve(maze_size * maze_size * 2);
+    set_of_edges.resize(maze_size * maze_size * 2);
     parent.resize(real_size * real_size + real_size * 2);
     component_size.resize(real_size * real_size + real_size * 2);
     for (int i = 0; i < parent.size(); i++) parent[i] = i, component_size[i] = 1;
@@ -107,19 +133,8 @@ void generate_maze::generate() {
     }
     //get percentage of wall 
     double percentage = 1.0 - ((count_break_wall * 1.0) / set_of_edges.size() * 1.0); //% tường đang chiếm hiện tại
-    double wall_percentage = get_random_number(10.0, min(20.0, percentage * 100)) / 100.0; //có từ 15% -> 40% là tường
+    double wall_percentage = get_random_number(15.0, min(25.0, percentage * 100)) / 100.0; //có từ 15% -> 40% là tường
     int number_wall = (percentage - wall_percentage) * ((int)set_of_edges.size()); //số tường cần phá thêm
-    //cout << percentage << " "<< wall_percentage << " " << number_wall << " " << parent.size() << "\n";
-    // 
-    // cout << "Wall percentage at the beginning: 100%\n";
-    // cout << "Number of walls at the beginning: " << set_of_edges.size() << "\n";
-    // cout << "Wall percentage after make perfect maze: " << percentage << "\n";
-    // cout << "Number of walls we destroyed: " << count_break_wall << "\n";
-    // cout << "Wall percentage we will keep: " << wall_percentage << "\n";
-    // cout << "Wall percentage we continue destroying: " << percentage - wall_percentage << "\n";
-    // cout << "Number of walls we will destroy: " << (percentage - wall_percentage) *  ( (int) set_of_edges.size()) << "\n";
-
-
     for (auto& [a, b, c, d, f] : set_of_edges) {
         if (number_wall <= 0) break;
         if (f == false) { // if wall
@@ -166,34 +181,6 @@ void generate_maze::generate() {
     }
     //---random exit---
 
-
-    bool fair_setup = false;
-    position tmp_player, tmp_mummy;
-    do {
-        //---random player---
-        do {
-            tmp_player.x = get_random_number(0, maze_size - 1);
-            tmp_player.y = get_random_number(0, maze_size - 1);
-        } while (manhattan_distance(exit_cell, tmp_player) < maze_size / 2);
-        //---random player---
-
-        //---random mummy---
-        do {
-            tmp_mummy.x = get_random_number(0, maze_size - 1);
-            tmp_mummy.y = get_random_number(0, maze_size - 1);
-        } while (manhattan_distance(tmp_mummy, player) < maze_size / 2);
-        //---random mummy---
-        int dist_player = manhattan_distance(exit_cell, tmp_player);
-        int dist_mummy = manhattan_distance(tmp_player, tmp_mummy);
-        if (dist_mummy > (dist_player * 2) - 2) {
-            fair_setup = true;
-        }
-    } while (fair_setup == false);
-    mummy = tmp_mummy;
-    maze_layout[get_real_coordinates(mummy.x)][get_real_coordinates(mummy.y)] = 'M';
-
-    player = tmp_player;
-    maze_layout[get_real_coordinates(player.x)][get_real_coordinates(player.y)] = 'E';
 }
 struct direction {
     bool reach[4] = { false };
@@ -210,14 +197,7 @@ struct queue_element {
 int get_id_pair(position a, position b, int n) {
     return a.x * n * n * n + a.y * n * n + b.x * n + b.y;
 }
-void decode_id(int id, int n, position& p, position& m) {
-    m.y = id % n; id /= n;
-    m.x = id % n; id /= n;
-    p.y = id % n; id /= n;
-    p.x = id;
-}
-vector <int> dx = { 0, 0, 1, -1 };
-vector <int> dy = { 1, -1, 0, 0 };
+
 
 position get_next_mummy_move(position mm, position py, vector <vector <direction > > layout, int layout_size) {
     position ans;
@@ -271,14 +251,12 @@ int generate_maze::can_solve_the_maze() {
             }
         }
     }
-
     int max_move = maze_size * maze_size * 2;
     q.push({ player, mummy, 0 });
     visited[get_id_pair(player, mummy, maze_size)] = true;
 
-    vector <int> tracing(maze_size * maze_size * maze_size * maze_size, -2);
-    tracing[get_id_pair(player, mummy, maze_size)] = -1;
     int start_id = get_id_pair(player, mummy, maze_size);
+
     while (!q.empty()) {
         queue_element u = q.front();
         q.pop();
@@ -301,16 +279,6 @@ int generate_maze::can_solve_the_maze() {
                 continue;
             }
             if (new_py.x >= maze_size || new_py.x < 0 || new_py.x < 0 || new_py.y >= maze_size) {
-                int curr = get_id_pair(cur_py, cur_mm, maze_size);
-                while (tracing[curr] != -1) {
-                    if (tracing[curr] == -2 && curr != start_id) {
-                        std::cerr << "wtf";
-                    }
-                    position p, m;
-                    decode_id(curr, maze_size, p, m);
-                    curr = tracing[curr];
-                    std::cerr << p.x << " " << p.y << "\n";
-                }
                 return u.num_move + 1;
             }
 
@@ -327,10 +295,93 @@ int generate_maze::can_solve_the_maze() {
             }
             q.push({ new_py, new_mm, u.num_move + 1 });
             visited[new_id] = true;
-            //tracing[new_id] = get_id_pair(cur_py,cur_mm,maze_size);
         }
     }
 
 
     return -1;
+}
+void generate_maze::reset_data() {
+    init_real_maze();
+    parent.clear();
+    parent.resize(real_size * real_size + real_size * 2);
+    component_size.clear();
+    component_size.resize(real_size * real_size + real_size * 2);
+    for (int i = 0; i < parent.size(); i++) parent[i] = i, component_size[i] = 1;
+
+}
+
+void generate_maze::generate() {
+
+    bool success = false;
+    while (!success) {
+        build_maze();
+        vector<int> distance_from_exit(maze_size * maze_size * maze_size, INT_MAX);
+        distance_from_cell(distance_from_exit, exit_cell, maze_size, maze_layout);
+        int max_try = 50;
+
+        while (max_try--) {
+            position tmp_player, tmp_mummy;
+            bool valid_player = false, valid_mummy = false;
+            //player 
+            // do {
+
+            // } while ();
+            int p_try = 20;
+            while (p_try--) {
+                tmp_player.x = get_random_number(0, maze_size - 1);
+                tmp_player.y = get_random_number(0, maze_size - 1);
+                int d = distance_from_exit[get_id_maze(tmp_player.x, tmp_player.y, maze_size)];
+                if (d != INT_MAX && d > maze_size / 2) {
+                    valid_player = true;
+                    break;
+                }
+            }
+            //player
+            if (!valid_player) continue;
+
+            int d_player_to_exit = distance_from_exit[get_id_maze(tmp_player.x, tmp_player.y, maze_size)];
+
+            vector<int> dist_from_player(maze_size * maze_size, INT_MAX);
+            distance_from_cell(dist_from_player, tmp_player, maze_size, maze_layout);
+            int m_try = 20;
+            while (m_try--) {
+                tmp_mummy.x = get_random_number(0, maze_size - 1);
+                tmp_mummy.y = get_random_number(0, maze_size - 1);
+
+                int d = dist_from_player[get_id_maze(tmp_mummy.x, tmp_mummy.y, maze_size)];
+                int d_e = distance_from_exit[get_id_maze(tmp_mummy.x, tmp_mummy.y, maze_size)];
+                if (d_e <= 4) {
+                    continue;
+                }
+                if (d != INT_MAX && d > maze_size / 2) {
+                    valid_mummy = true;
+                    break;
+                }
+            }
+            if (!valid_mummy) continue;
+
+            int d_mummy_to_player = dist_from_player[get_id_maze(tmp_mummy.x, tmp_mummy.y, maze_size)];
+            int d_mummy_to_exit = distance_from_exit[get_id_maze(tmp_mummy.x, tmp_mummy.y, maze_size)];
+            double safety_factor = 1.5;
+            if (d_mummy_to_player < d_player_to_exit * safety_factor) {
+                continue;
+            }
+
+            this->player = tmp_player;
+            this->mummy = tmp_mummy;
+
+            maze_layout[get_real_coordinates(player.x)][get_real_coordinates(player.y)] = 'E';
+            maze_layout[get_real_coordinates(mummy.x)][get_real_coordinates(mummy.y)] = 'M';
+
+            int steps = can_solve_the_maze();
+
+            if (steps != -1) {
+                success = true;
+                return;
+            }
+            maze_layout[get_real_coordinates(player.x)][get_real_coordinates(player.y)] = ' ';
+            maze_layout[get_real_coordinates(mummy.x)][get_real_coordinates(mummy.y)] = ' ';
+        }
+    }
 }

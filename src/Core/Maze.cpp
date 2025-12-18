@@ -43,9 +43,18 @@ void Map::loadTheme(const std::string& themeName) {
     }
     std::cerr << "Theme loaded: " << themeName << "\n";
 
-    if (!m_texExit.loadFromFile("assets/textures/exit.png")) {
-        std::cerr << "Error loading exit texture\n";
-    }
+    m_texDoors.resize(4); // 0: Top, 1: Left, 2: Right, 3: Bottom
+    if (!m_texDoors[0].loadFromFile(pathPrefix + "Door/door.top.png"))
+        std::cerr << "Error loading door_top\n";
+
+    if (!m_texDoors[1].loadFromFile(pathPrefix + "Door/door.left.png"))
+        std::cerr << "Error loading door_left\n";
+
+    if (!m_texDoors[2].loadFromFile(pathPrefix + "Door/door.right.png"))
+        std::cerr << "Error loading door_right\n";
+
+    if (!m_texDoors[3].loadFromFile(pathPrefix + "Door/door.bottom.png"))
+        std::cerr << "Error loading door_bottom\n";
 }
 
 void Map::loadMap(const std::string& filePath, Player& player, Mummy& mummy) {
@@ -187,35 +196,39 @@ void Map::draw(sf::RenderWindow& window, Player& player, Mummy& mummy) {
         for (int x = 0; x < m_width; ++x) {
             const Cell& cell = m_grid[y][x];
 
-            if (cell.exitVariant == -1) continue;
+            if (cell.exitVariant == -1 || m_texDoors.size() < 4) continue;
 
             float px = x * m_tileSize + posmap.x - dynamicOffset;
             float py = y * m_tileSize + posmap.y - dynamicOffset;
 
-            sf::Sprite exitSprite(m_texExit);
+            sf::Sprite exitSprite(m_texDoors[cell.exitVariant]);
             sf::FloatRect b = exitSprite.getLocalBounds();
 
-            exitSprite.setOrigin({ b.size.x / 2.f, b.size.y / 2.f });
-            exitSprite.setScale({ scaleRatio, scaleRatio });
-            exitSprite.setPosition({ px, py });
-
-            float offset = m_tileSize / 2.f;
+            int map_size = 720.f / m_tileSize;
+            float pushOut;
+			if (map_size == 6) pushOut = 60.f;
+			else if (map_size == 8) pushOut = 45.f;
+            else if (map_size == 10) pushOut = 35.f;
 
             if (cell.exitVariant == 0) {
-                exitSprite.setRotation(sf::degrees(-90.f));
-                exitSprite.move({ 0, -offset - 60.f * scaleRatio });
+                exitSprite.setOrigin({ b.size.x / 2.0f, b.size.y });
+                exitSprite.setPosition({ px, py });
+                exitSprite.move({ 0, -pushOut });
             }
             else if (cell.exitVariant == 3) {
-                exitSprite.setRotation(sf::degrees(90.f));
-                exitSprite.move({ 0, offset + 60.f * scaleRatio });
+                exitSprite.setOrigin({ b.size.x / 2.0f, 0 });
+                exitSprite.setPosition({ px, py });
+                exitSprite.move({ 0, pushOut });
             }
             else if (cell.exitVariant == 1) {
-                exitSprite.setRotation(sf::degrees(180.f));
-                exitSprite.move({ -offset - 60.f * scaleRatio, 0 });
+                exitSprite.setOrigin({ b.size.x, b.size.y / 2.0f });
+                exitSprite.setPosition({ px, py });
+                exitSprite.move({ -pushOut, 0 });
             }
             else if (cell.exitVariant == 2) {
-                exitSprite.setRotation(sf::degrees(0.f));
-                exitSprite.move({ offset + 60.f * scaleRatio, 0 });
+                exitSprite.setOrigin({ 0, b.size.y / 2.0f });
+                exitSprite.setPosition({ px, py });
+                exitSprite.move({ pushOut, 0 });
             }
 
             window.draw(exitSprite);

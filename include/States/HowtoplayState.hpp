@@ -12,6 +12,8 @@ private:
     std::optional<sf::Text> m_title;
     std::optional<sf::Text> m_btnBack;
     std::optional<sf::Text> m_btnTry;
+    int m_lastThemeId;
+    sf::RectangleShape m_darkLayer;
 
     sf::RectangleShape m_container;
 
@@ -22,6 +24,7 @@ private:
     void initVariables();
     void initGui();
     void updateInput(float dt);
+	void reloadBackground();
 
 public:
     HowToPlayState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

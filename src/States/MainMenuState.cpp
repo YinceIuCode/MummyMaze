@@ -3,6 +3,7 @@
 #include "../../include/States/SettingState.hpp" 
 #include "../../include/States/CustomizeState.hpp"
 #include "../../include/States/HowtoplayState.hpp"
+#include "../../include/Core/GameData.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -17,15 +18,43 @@ MainMenuState::~MainMenuState() {
 
 }
 
-void MainMenuState::initVariables() {
-    if (m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) {
+void MainMenuState::reloadBackground() {
+    string themeName;
+    if (GameData::currentTheme == 0) themeName = "Playmap";
+    else if (GameData::currentTheme == 1) themeName = "Nobi";
+
+    string fileTheme = "assets/textures/Backgrounds/" + themeName + "_bg.png";
+
+    if (m_bgTexture.loadFromFile(fileTheme.c_str())) {
         m_bgTexture.setSmooth(true);
-        m_bgSprite.emplace(m_bgTexture);
+        if (!m_bgSprite.has_value()) {
+            m_bgSprite.emplace(m_bgTexture);
+        }
+        else {
+            m_bgSprite->setTexture(m_bgTexture);
+        }
     }
+
+    if (m_bgSprite.has_value()) {
+        m_bgSprite->setScale({ 1.f, 1.f });
+        m_bgSprite->setScale({
+            1290.f / m_bgSprite->getGlobalBounds().size.x,
+            960.f / m_bgSprite->getGlobalBounds().size.y
+            });
+    }
+
+    m_lastThemeId = GameData::currentTheme;
+    std::cout << "Background reloaded: " << themeName << "\n";
+}
+
+void MainMenuState::initVariables() {
+    
+    reloadBackground();
+
     if (!m_font.openFromFile("assets/fonts/Akashi.ttf")) {
         std::cerr << "ERROR: Akashi.ttf\n";
     }
-    m_titleText.emplace(m_font, "SYSTEM MAZE", 100);
+    //m_titleText.emplace(m_font, "SYSTEM MAZE", 100);
 
     if (!m_txPlay.loadFromFile("assets/textures/Menu/btn_play.png")) std::cerr << "Err Play\n";
     if (!m_txCustomize.loadFromFile("assets/textures/Menu/btn_customize.png")) std::cerr << "Err Customize\n";
@@ -58,11 +87,14 @@ void MainMenuState::initGui() {
     m_HowToPlayText->setPosition({ m_window->getSize().x - 60.f * 2 - 90.f, 50.f });
     m_HowToPlayText->setStyle(sf::Text::Underlined | sf::Text::Bold);
 
-    if (m_titleText.has_value()) {
+    m_darkLayer.setSize(sf::Vector2f(static_cast<float>(m_window->getSize().x), static_cast<float>(m_window->getSize().y)));
+    m_darkLayer.setFillColor(sf::Color(0, 0, 0, 50));
+
+    /*if (m_titleText.has_value()) {
         sf::FloatRect bounds = m_titleText->getLocalBounds();
         m_titleText->setOrigin({ bounds.size.x / 2.f, bounds.size.y / 2.f });
         m_titleText->setPosition({ centerX, 200.f });
-    }
+    }*/
 
     m_btnPlay = std::make_unique<Button>(m_txPlay, centerX, startY + gapY * 2, 3.0f);
     m_btnPlay->setSound(m_buffHover, m_buffClick);
@@ -189,8 +221,12 @@ void MainMenuState::update(float dt) {
 }
 
 void MainMenuState::render(sf::RenderWindow& window) {
+    if (m_lastThemeId != GameData::currentTheme) {
+        reloadBackground();
+    }
     if (m_bgSprite.has_value()) window.draw(*m_bgSprite);
-    if (m_titleText.has_value()) window.draw(*m_titleText);
+	window.draw(m_darkLayer);
+    //if (m_titleText.has_value()) window.draw(*m_titleText);
     if (m_HowToPlayText.has_value()) window.draw(*m_HowToPlayText);
 
     m_btnPlay->render(window);

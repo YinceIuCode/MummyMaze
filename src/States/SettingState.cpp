@@ -14,9 +14,38 @@ SettingState::~SettingState() {
 
 }
 
+void SettingState::reloadBackground() {
+    std::string themeName;
+    if (GameData::currentTheme == 0) themeName = "Playmap";
+    else if (GameData::currentTheme == 1) themeName = "Nobi";
+
+    std::string fileTheme = "assets/textures/Backgrounds/" + themeName + "_bgT.png";
+
+    if (m_bgTexture.loadFromFile(fileTheme.c_str())) {
+        m_bgTexture.setSmooth(true);
+        if (!m_bgSprite.has_value()) {
+            m_bgSprite.emplace(m_bgTexture);
+        }
+        else {
+            m_bgSprite->setTexture(m_bgTexture);
+        }
+    }
+
+    if (m_bgSprite.has_value()) {
+        m_bgSprite->setScale({ 1.f, 1.f });
+        m_bgSprite->setScale({
+            1290.f / m_bgSprite->getGlobalBounds().size.x,
+            960.f / m_bgSprite->getGlobalBounds().size.y
+            });
+    }
+
+    m_lastThemeId = GameData::currentTheme;
+    std::cout << "Background reloaded: " << themeName << "\n";
+}
+
 void SettingState::initVariables() {
     if (!m_font.openFromFile("assets/fonts/Akashi.ttf")) std::cerr << "Err Font\n";
-    if (m_bgTexture.loadFromFile("assets/textures/Backgrounds/menu_bg.png")) m_bgSprite.emplace(m_bgTexture);
+    reloadBackground();
 
     if (!m_buffClick.loadFromFile("assets/audios/click.wav")) {
         std::cerr << "Err Click Sound Buffer\n";
@@ -94,6 +123,9 @@ void SettingState::initGui() {
     sf::FloatRect togBounds = m_sprSfxToggle->getLocalBounds();
     m_sprSfxToggle->setOrigin({ 0, togBounds.size.y / 2.f });
     m_sprSfxToggle->setPosition({ cx + 20.f, row2_Y + 5.f });
+
+    m_darkLayer.setSize(sf::Vector2f(static_cast<float>(m_window->getSize().x), static_cast<float>(m_window->getSize().y)));
+    m_darkLayer.setFillColor(sf::Color(0, 0, 0, 50));
 }
 
 void SettingState::updateButtons() {
@@ -167,7 +199,11 @@ void SettingState::update(float dt) {
 }
 
 void SettingState::render(sf::RenderWindow& window) {
+    if (m_lastThemeId != GameData::currentTheme) {
+        reloadBackground();
+    }
     if (m_bgSprite.has_value()) window.draw(*m_bgSprite);
+    window.draw(m_darkLayer);
     if (m_title.has_value()) window.draw(*m_title);
     if (m_btnBack.has_value()) window.draw(*m_btnBack);
 

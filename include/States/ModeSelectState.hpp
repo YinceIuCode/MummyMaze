@@ -12,7 +12,10 @@ private:
     sf::Text m_btn10x10;
     sf::Text m_btnBack;
 	sf::Texture m_bgTexture;
-	std::optional<sf::Sprite> m_background;
+    std::optional<sf::Text> m_loadingText;
+	std::optional<sf::Sprite> m_bgSprite;
+    int m_lastThemeId;
+    sf::RectangleShape m_darkLayer;
 
     sf::SoundBuffer m_buffHover;
     sf::SoundBuffer m_buffClick;
@@ -23,7 +26,8 @@ private:
 
     void initFonts();
     void initGui();
-    void updateButtons(); // Xử lý hover/click
+    void updateButtons();
+	void reloadBackground();
 
 public:
     ModeSelectState(sf::RenderWindow* window, std::stack<std::unique_ptr<State>>* states);

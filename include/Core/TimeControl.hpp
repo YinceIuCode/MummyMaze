@@ -62,6 +62,9 @@ public:
         while (!undo_stack.empty()) undo_stack.pop();
         while (!redo_stack.empty()) redo_stack.pop();
     }
+    void resetredo() {
+        while (!redo_stack.empty()) redo_stack.pop();
+	}
 
     bool canUndo() const { return !undo_stack.empty(); }
     bool canRedo() const { return !redo_stack.empty(); }

@@ -348,7 +348,6 @@ void GameState::update(float dt) {
         }
         if ((sf::Keyboard::isKeyPressed(sf::Keyboard::Key::I) || (m_btnRedo && m_btnRedo->isClicked())) && m_inputCooldown <= 0.0f) {
             if (time_machine.canRedo()) {
-                // Tương tự Undo
                 GameSnapshot future_state = time_machine.redo_state(m_player, m_mummy, m_stepCount);
 
                 m_player = future_state.player;
@@ -401,6 +400,7 @@ void GameState::update(float dt) {
 
         if (isPressingKey && !m_player.isMoving()) {
             time_machine.push_state(m_player, m_mummy, m_stepCount);
+            time_machine.resetredo();
 
             m_player.processInput(m_map);
             if (m_player.isMoving()) {
